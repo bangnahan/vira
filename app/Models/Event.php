@@ -97,7 +97,7 @@ class Event extends Model
      */
     public function getBannerUrlAttribute(): string
     {
-        if (empty($this->banner_image)) {
+        if (empty($this->banner_image) || rtrim($this->banner_image, '/') === '/storage' || $this->banner_image === '/storage/') {
             return 'https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=1200&q=80';
         }
 

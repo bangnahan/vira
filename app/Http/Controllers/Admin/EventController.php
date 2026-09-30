@@ -87,8 +87,11 @@ class EventController extends Controller
 
         $bannerUrl = $validated['banner_image'] ?? null;
         if ($request->hasFile('hero_image')) {
+            Storage::disk('public')->makeDirectory('events/banners');
             $path = $request->file('hero_image')->store('events/banners', 'public');
-            $bannerUrl = Storage::url($path);
+            if ($path) {
+                $bannerUrl = Storage::url($path);
+            }
         }
 
         $event = DB::transaction(function () use ($validated, $slug, $bannerUrl, $request) {
@@ -230,10 +233,15 @@ class EventController extends Controller
         if ($request->hasFile('hero_image')) {
             if ($event->banner_image && str_starts_with($event->banner_image, '/storage/')) {
                 $oldPath = str_replace('/storage/', '', $event->banner_image);
-                Storage::disk('public')->delete($oldPath);
+                if ($oldPath !== '') {
+                    Storage::disk('public')->delete($oldPath);
+                }
             }
+            Storage::disk('public')->makeDirectory('events/banners');
             $path = $request->file('hero_image')->store('events/banners', 'public');
-            $bannerUrl = Storage::url($path);
+            if ($path) {
+                $bannerUrl = Storage::url($path);
+            }
         } elseif ($request->filled('banner_image')) {
             $bannerUrl = $request->input('banner_image');
         }
