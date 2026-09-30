@@ -70,8 +70,14 @@
                 </div>
             @endif
         @else
-            <!-- QRIS / Payment Box -->
+            <!-- Payment Channel & Action Box -->
             <div class="mt-6 p-4 sm:p-6 rounded-2xl bg-slate-950 border border-slate-800 text-center">
+                <!-- Selected Method Badge -->
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-300 mb-2">
+                    <span class="text-slate-400">Metode Pembayaran:</span>
+                    <span class="text-[#FF5500] font-bold">{{ $payment->payment_method_name }}</span>
+                </div>
+
                 <div class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Total Tagihan Pembayaran</div>
                 <div class="text-3xl sm:text-4xl font-extrabold font-mono-num text-white mb-4 text-[#FF5500]">
                     Rp {{ number_format($payment->total_amount, 0, ',', '.') }}
@@ -85,37 +91,99 @@
                     </div>
                 @elseif($payment->pay_code)
                     <!-- Virtual Account / Retail Code with One-Tap Copy -->
-                    <div class="max-w-md mx-auto p-4 rounded-xl bg-slate-900 border border-slate-800 mb-4 text-center">
-                        <span class="text-xs text-slate-400 block font-bold uppercase">Kode Pembayaran / Virtual Account</span>
-                        <div class="text-xl sm:text-2xl font-mono-num font-bold text-white tracking-widest my-2 select-all">{{ $payment->pay_code }}</div>
+                    <div class="max-w-md mx-auto p-4 sm:p-5 rounded-2xl bg-slate-900/90 border border-slate-800 mb-4 text-center">
+                        <span class="text-xs text-slate-400 block font-bold uppercase tracking-wider">
+                            Nomor {{ $payment->payment_method_name }}
+                        </span>
+                        <div class="text-2xl sm:text-3xl font-mono-num font-extrabold text-white tracking-widest my-3 select-all text-cyan-400">
+                            {{ $payment->pay_code }}
+                        </div>
                         <button type="button" 
-                                onclick="navigator.clipboard.writeText('{{ $payment->pay_code }}'); this.textContent = '✓ Tersalin!'; setTimeout(() => this.textContent = 'Salin Kode Pembayaran', 2000)" 
-                                class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-cyan-300 border border-cyan-800/40 transition">
-                            Salin Kode Pembayaran
+                                onclick="navigator.clipboard.writeText('{{ $payment->pay_code }}'); this.textContent = '✓ Nomor Berhasil Tersalin!'; setTimeout(() => this.textContent = 'Salin Nomor Virtual Account', 2000)" 
+                                class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-cyan-300 border border-cyan-800/40 transition shadow">
+                            Salin Nomor Virtual Account
                         </button>
-                        <span class="text-[11px] text-slate-500 block mt-2">Gunakan kode di atas pada menu transfer atau ATM</span>
+                        <span class="text-[11px] text-slate-400 block mt-2.5">
+                            Gunakan nomor di atas pada menu transfer Virtual Account bank Anda
+                        </span>
+                    </div>
+                @elseif($payment->checkout_url)
+                    <!-- E-Wallet / Direct Redirect Channel -->
+                    <div class="max-w-md mx-auto p-5 rounded-2xl bg-slate-900/90 border border-slate-800 mb-4 text-center">
+                        <span class="text-xs text-slate-400 block font-bold uppercase tracking-wider mb-2">
+                            Pembayaran {{ $payment->payment_method_name }}
+                        </span>
+                        <p class="text-xs text-slate-300 mb-4">
+                            Silakan klik tombol di bawah ini untuk membuka halaman atau aplikasi pembayaran resmi Tripay.
+                        </p>
+                        <a href="{{ $payment->checkout_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-[#FF5500] to-[#FF7700] hover:from-[#FF6600] hover:to-[#FF8800] transition shadow-lg shadow-orange-950/50 glow-orange">
+                            <span>Bayar Sekarang via {{ $payment->payment_method_name }} &rarr;</span>
+                        </a>
                     </div>
                 @else
-                    <!-- QRIS Mockup / Fallback -->
-                    <div class="w-48 h-48 sm:w-56 sm:h-56 mx-auto bg-white p-3 rounded-2xl shadow-xl flex flex-col items-center justify-center mb-4">
-                        <div class="w-full h-full bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center p-2 text-slate-800">
-                            <span class="text-3xl mb-1">📱</span>
-                            <span class="font-extrabold text-xs">QRIS TRIPAY READY</span>
-                            <span class="text-[9px] text-slate-500 text-center mt-1">Scan via BCA Mobile, GoPay, OVO, Dana, ShopeePay</span>
+                    <!-- Fallback / Not Yet Synchronized with Tripay -->
+                    @if($payment->isQris() && $payment->total_amount <= 0)
+                        <div class="w-48 h-48 sm:w-56 sm:h-56 mx-auto bg-white p-3 rounded-2xl shadow-xl flex flex-col items-center justify-center mb-4">
+                            <div class="w-full h-full bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center p-2 text-slate-800">
+                                <span class="text-3xl mb-1">📱</span>
+                                <span class="font-extrabold text-xs">QRIS TRIPAY READY</span>
+                                <span class="text-[9px] text-slate-500 text-center mt-1">Scan via BCA Mobile, GoPay, OVO, Dana, ShopeePay</span>
+                            </div>
                         </div>
-                    </div>
+                    @else
+                        <div class="max-w-md mx-auto p-4 sm:p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-center my-4">
+                            <div class="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl mx-auto mb-2">⚠️</div>
+                            <div class="text-amber-400 font-bold text-sm mb-1">Tagihan Belum Terbit dari Gateway Tripay</div>
+                            <p class="text-xs text-slate-300 mb-3 leading-relaxed">
+                                {{ $tripayError ?? 'Sistem sedang menunggu respons dari Tripay untuk metode pembayaran ' . $payment->payment_method_name . '. Silakan klik tombol di bawah untuk menyinkronkan nomor tagihan/VA Anda.' }}
+                            </p>
+                            <a href="{{ route('payment.sync', $payment->merchant_ref) }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 transition shadow-lg">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                <span>Sinkronkan Tagihan Tripay Sekarang</span>
+                            </a>
+                        </div>
+                    @endif
                 @endif
 
                 @if($payment->checkout_url)
                     <div class="mt-4 mb-4">
                         <a href="{{ $payment->checkout_url }}" target="_blank" rel="noopener noreferrer" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-[#FF5500] to-[#FF7700] hover:from-[#FF6600] hover:to-[#FF8800] transition shadow-lg shadow-orange-950/50 glow-orange">
-                            <span>Buka Halaman Checkout Tripay</span>
+                            <span>Buka Halaman Checkout Tripay Resmi</span>
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                         </a>
                     </div>
                 @endif
 
-                <p class="text-xs text-slate-400">
+                <!-- Petunjuk Pembayaran Lengkap dari Tripay (ATM / Mobile / Internet Banking) -->
+                @php $instructions = $payment->getInstructions(); @endphp
+                @if(!empty($instructions) && is_array($instructions))
+                    <div class="mt-6 text-left max-w-xl mx-auto border-t border-slate-800/80 pt-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-300 mb-3 text-center">
+                            📋 Panduan Cara Pembayaran
+                        </h4>
+                        <div class="space-y-2">
+                            @foreach($instructions as $inst)
+                                <details class="group bg-slate-900/80 rounded-xl border border-slate-800 overflow-hidden text-xs" {{ $loop->first ? 'open' : '' }}>
+                                    <summary class="p-3 font-semibold text-slate-200 cursor-pointer flex items-center justify-between select-none hover:text-white transition">
+                                        <span>{{ $inst['title'] ?? 'Panduan Pembayaran' }}</span>
+                                        <svg class="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                    </summary>
+                                    <div class="px-4 pb-4 pt-1 text-slate-300 border-t border-slate-800/50 space-y-1.5 leading-relaxed bg-slate-950/40">
+                                        @if(isset($inst['steps']) && is_array($inst['steps']))
+                                            <ol class="list-decimal list-inside space-y-1">
+                                                @foreach($inst['steps'] as $step)
+                                                    <li>{!! $step !!}</li>
+                                                @endforeach
+                                            </ol>
+                                        @endif
+                                    </div>
+                                </details>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <p class="text-xs text-slate-400 mt-4">
                     Batas waktu pembayaran: <strong class="text-amber-300">{{ $payment->expired_at ? $payment->expired_at->format('d M Y, H:i') : '24 Jam' }} WIB</strong>
                 </p>
 

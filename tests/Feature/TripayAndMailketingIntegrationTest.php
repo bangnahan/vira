@@ -328,4 +328,117 @@ class TripayAndMailketingIntegrationTest extends TestCase
         $postRes = $this->post(route('payment.simulate', $this->payment->merchant_ref));
         $postRes->assertStatus(403);
     }
+
+    public function test_registration_with_bcava_redirects_to_checkout_and_saves_pay_code(): void
+    {
+        Http::fake([
+            '*/transaction/create' => Http::response([
+                'success' => true,
+                'data' => [
+                    'reference' => 'DEV-T39430BCA123',
+                    'merchant_ref' => 'VIRA-TEST-BCA-1',
+                    'payment_method' => 'BCAVA',
+                    'payment_name' => 'BCA Virtual Account',
+                    'amount' => 50000,
+                    'total_fee' => 5500,
+                    'checkout_url' => 'https://tripay.co.id/checkout/DEV-T39430BCA123',
+                    'qr_url' => null,
+                    'pay_code' => '730262352584519',
+                    'status' => 'UNPAID',
+                    'expired_time' => now()->addHours(24)->timestamp,
+                    'instructions' => [
+                        [
+                            'title' => 'Mobile Banking',
+                            'steps' => ['Buka BCA Mobile', 'Pilih m-Transfer > BCA Virtual Account', 'Masukkan no VA'],
+                        ],
+                    ],
+                ],
+            ], 200),
+            'https://api.mailketing.co.id/*' => Http::response(['status' => 'success'], 200),
+        ]);
+
+        $payload = [
+            'full_name' => 'Budi Santoso',
+            'email' => 'budi@example.com',
+            'phone_number' => '081299887766',
+            'category_id' => $this->category->id,
+            'package_id' => $this->package->id,
+            'payment_channel' => 'BCAVA',
+        ];
+
+        $response = $this->post('/event/'.$this->event->slug.'/register', $payload);
+        $response->assertStatus(302);
+        $response->assertRedirect('https://tripay.co.id/checkout/DEV-T39430BCA123');
+
+        $reg = Registration::where('event_id', $this->event->id)->whereHas('participant', fn ($q) => $q->where('email', 'budi@example.com'))->first();
+        $this->assertNotNull($reg);
+        $payment = $reg->payment;
+        $this->assertEquals('BCAVA', $payment->payment_method);
+        $this->assertEquals('730262352584519', $payment->pay_code);
+        $this->assertEquals('BCA Virtual Account', $payment->payment_method_name);
+        $this->assertTrue($payment->isVirtualAccount());
+        $this->assertFalse($payment->isQris());
+    }
+
+    public function test_registration_displays_warning_and_sync_button_if_tripay_fails_instead_of_qris_mockup(): void
+    {
+        Http::fake([
+            '*/transaction/create' => Http::response([
+                'success' => false,
+                'message' => 'Total amount minimal adalah Rp 10.000',
+            ], 400),
+            'https://api.mailketing.co.id/*' => Http::response(['status' => 'success'], 200),
+        ]);
+
+        $payload = [
+            'full_name' => 'Dewi Lestari',
+            'email' => 'dewi@example.com',
+            'phone_number' => '081277665544',
+            'category_id' => $this->category->id,
+            'package_id' => $this->package->id,
+            'payment_channel' => 'BCAVA',
+        ];
+
+        $response = $this->post('/event/'.$this->event->slug.'/register', $payload);
+        $response->assertStatus(302);
+        $response->assertSessionHas('warning');
+
+        $reg = Registration::where('event_id', $this->event->id)->whereHas('participant', fn ($q) => $q->where('email', 'dewi@example.com'))->first();
+        $this->assertNotNull($reg);
+
+        // Halaman payment.show TIDAK menampilkan mockup "QRIS TRIPAY READY" karena metodenya BCAVA
+        $showRes = $this->get(route('payment.show', $reg->payment->merchant_ref));
+        $showRes->assertStatus(200);
+        $showRes->assertSee('BCA Virtual Account');
+        $showRes->assertDontSee('QRIS TRIPAY READY');
+        $showRes->assertSee('Sinkronkan Tagihan Tripay Sekarang');
+    }
+
+    public function test_payment_sync_route_resyncs_and_redirects(): void
+    {
+        Http::fake([
+            '*/transaction/create' => Http::response([
+                'success' => true,
+                'data' => [
+                    'reference' => 'DEV-RESYNC-123',
+                    'merchant_ref' => $this->payment->merchant_ref,
+                    'payment_method' => 'BCAVA',
+                    'payment_name' => 'BCA Virtual Account',
+                    'amount' => 50000,
+                    'total_fee' => 5500,
+                    'checkout_url' => 'https://tripay.co.id/checkout/DEV-RESYNC-123',
+                    'qr_url' => null,
+                    'pay_code' => '998877665544332',
+                    'status' => 'UNPAID',
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->post(route('payment.sync', $this->payment->merchant_ref));
+        $response->assertStatus(302);
+        $response->assertRedirect('https://tripay.co.id/checkout/DEV-RESYNC-123');
+
+        $this->payment->refresh();
+        $this->assertEquals('998877665544332', $this->payment->pay_code);
+    }
 }

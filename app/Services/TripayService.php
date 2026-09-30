@@ -19,10 +19,18 @@ class TripayService
 
     public function __construct()
     {
-        $this->apiKey = config('tripay.api_key');
-        $this->privateKey = config('tripay.private_key');
-        $this->merchantCode = config('tripay.merchant_code');
-        $this->apiUrl = rtrim(config('tripay.api_url'), '/').'/';
+        $this->apiKey = (string) config('tripay.api_key');
+        $this->privateKey = (string) config('tripay.private_key');
+        $this->merchantCode = (string) config('tripay.merchant_code');
+
+        $isSandbox = (bool) config('tripay.sandbox', true);
+        if (! empty($this->apiKey) && str_starts_with($this->apiKey, 'DEV-')) {
+            $isSandbox = true;
+        }
+
+        $this->apiUrl = $isSandbox
+            ? 'https://tripay.co.id/api-sandbox/'
+            : 'https://tripay.co.id/api/';
     }
 
     /**
@@ -35,8 +43,9 @@ class TripayService
         try {
             if (! empty($this->apiKey)) {
                 $response = Http::withToken($this->apiKey)
-                    ->connectTimeout(2)
-                    ->timeout(2)
+                    ->connectTimeout(5)
+                    ->timeout(10)
+                    ->retry(2, 200)
                     ->get($this->apiUrl.'merchant/payment-channel');
 
                 if ($response->successful()) {
@@ -49,6 +58,8 @@ class TripayService
                     if (! empty($active)) {
                         return $active;
                     }
+                } else {
+                    Log::warning('Tripay merchant/payment-channel unsuccessful: '.$response->body());
                 }
             }
         } catch (\Throwable $e) {
@@ -166,18 +177,26 @@ class TripayService
                 'active' => true,
             ],
             [
-                'code' => 'BNCVA',
-                'name' => 'Bank Neo Commerce (BNC) Virtual Account',
-                'group' => 'Virtual Account',
-                'icon_url' => 'https://assets.tripay.co.id/upload/payment-icon/BNCVA.png',
-                'total_fee' => ['flat' => 4250, 'percent' => '0.00'],
-                'active' => true,
-            ],
-            [
                 'code' => 'MUAMALATVA',
                 'name' => 'Muamalat Virtual Account',
                 'group' => 'Virtual Account',
                 'icon_url' => 'https://assets.tripay.co.id/upload/payment-icon/MUAMALATVA.png',
+                'total_fee' => ['flat' => 4250, 'percent' => '0.00'],
+                'active' => true,
+            ],
+            [
+                'code' => 'OCBCVA',
+                'name' => 'OCBC NISP Virtual Account',
+                'group' => 'Virtual Account',
+                'icon_url' => 'https://assets.tripay.co.id/upload/payment-icon/ysiSToLvKl1644244798.png',
+                'total_fee' => ['flat' => 4250, 'percent' => '0.00'],
+                'active' => true,
+            ],
+            [
+                'code' => 'OTHERBANKVA',
+                'name' => 'Other Bank Virtual Account',
+                'group' => 'Virtual Account',
+                'icon_url' => 'https://assets.tripay.co.id/upload/payment-icon/qQYo61sIDa1702995837.png',
                 'total_fee' => ['flat' => 4250, 'percent' => '0.00'],
                 'active' => true,
             ],
@@ -221,6 +240,23 @@ class TripayService
         if (! $payment) {
             throw new Exception("Registration #{$registration->id} tidak memiliki relasi Payment.");
         }
+
+        // Normalisasi alias payment method
+        $channelAliases = [
+            'QRIS' => 'QRIS2',
+            'BCA' => 'BCAVA',
+            'BNI' => 'BNIVA',
+            'BRI' => 'BRIVA',
+            'MANDIRI' => 'MANDIRIVA',
+            'PERMATA' => 'PERMATAVA',
+            'CIMB' => 'CIMBVA',
+            'BSI' => 'BSIVA',
+            'DANAMON' => 'DANAMONVA',
+            'MUAMALAT' => 'MUAMALATVA',
+            'OCBC' => 'OCBCVA',
+            'OTHERBANK' => 'OTHERBANKVA',
+        ];
+        $paymentMethod = $channelAliases[strtoupper(trim($paymentMethod))] ?? strtoupper(trim($paymentMethod));
 
         $merchantRef = $payment->merchant_ref;
         $orderItems = [];
@@ -277,6 +313,10 @@ class TripayService
         // Hitung total amount berdasarkan akumulasi order items
         $amount = (int) collect($orderItems)->sum('subtotal');
 
+        if ($amount <= 0) {
+            throw new Exception('Total tagihan adalah Rp 0, tidak memerlukan transaksi Tripay.');
+        }
+
         // Generate Signature HMAC-SHA256: merchant_code + merchant_ref + amount
         $signature = hash_hmac('sha256', $this->merchantCode.$merchantRef.$amount, $this->privateKey);
 
@@ -299,6 +339,9 @@ class TripayService
         ];
 
         $response = Http::withToken($this->apiKey)
+            ->connectTimeout(10)
+            ->timeout(15)
+            ->retry(2, 500)
             ->post($this->apiUrl.'transaction/create', $payload);
 
         $result = $response->json();
@@ -311,7 +354,7 @@ class TripayService
 
         $data = $result['data'];
 
-        // Simpan info referensi Tripay ke database
+        // Simpan info referensi Tripay beserta respon raw (termasuk instructions & payment_name) ke database
         $payment->update([
             'tripay_reference' => $data['reference'] ?? null,
             'payment_method' => $paymentMethod,
@@ -321,6 +364,7 @@ class TripayService
             'admin_fee' => (float) ($data['total_fee'] ?? 0),
             'total_amount' => (float) ($data['amount'] ?? $amount),
             'expired_at' => isset($data['expired_time']) ? date('Y-m-d H:i:s', $data['expired_time']) : now()->addHours(24),
+            'raw_callback' => $data,
         ]);
 
         return $data;

@@ -55,8 +55,8 @@ class StorefrontController extends Controller
         $addOns = $query->orderBy('price', 'desc')->get();
         $events = Event::select('id', 'title', 'event_code')->orderBy('title')->get();
 
-        // Ambil saluran pembayaran aktif Tripay untuk checkout mandiri (cache 24 jam)
-        $paymentChannels = Cache::remember('tripay_active_payment_channels', 86400, function () {
+        // Ambil saluran pembayaran aktif Tripay untuk checkout mandiri (cache 1 jam)
+        $paymentChannels = Cache::remember('tripay_active_payment_channels', 3600, function () {
             return $this->tripayService->getPaymentChannels();
         });
         $groupedPaymentChannels = collect($paymentChannels)->groupBy('group');
@@ -259,13 +259,16 @@ class StorefrontController extends Controller
 
         // 6. Buat Closed Transaction di Tripay
         $payment = $registration->payment;
+        $tripayError = null;
+
         if ($payment && $payment->total_amount > 0) {
             try {
                 $channel = $validated['payment_channel'] ?? config('tripay.default_channel', 'QRIS2');
                 $this->tripayService->createClosedTransaction($registration, $channel);
                 $payment->refresh();
             } catch (\Exception $e) {
-                Log::warning('Tripay merchandise order transaction warning: '.$e->getMessage());
+                $tripayError = $e->getMessage();
+                Log::warning('Tripay merchandise order transaction warning: '.$tripayError);
             }
         }
 
@@ -276,7 +279,16 @@ class StorefrontController extends Controller
             Log::warning('Mailketing send merchandise invoice warning: '.$e->getMessage());
         }
 
-        return redirect()->route('payment.show', ['merchant_ref' => $payment->merchant_ref])
-            ->with('success', 'Pesanan merchandise Anda berhasil dibuat! Silakan selesaikan pembayaran.');
+        if (! empty($payment->checkout_url)) {
+            return redirect()->away($payment->checkout_url);
+        }
+
+        $redirect = redirect()->route('payment.show', ['merchant_ref' => $payment->merchant_ref]);
+
+        if ($tripayError) {
+            return $redirect->with('warning', 'Pesanan merchandise berhasil disimpan, namun gateway Tripay merespon: '.$tripayError);
+        }
+
+        return $redirect->with('success', 'Pesanan merchandise Anda berhasil dibuat! Silakan selesaikan pembayaran.');
     }
 }

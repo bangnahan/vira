@@ -54,8 +54,8 @@ class RegistrationController extends Controller
             ->where('stock', '>', 0)
             ->get();
 
-        // Ambil channel pembayaran Tripay aktif (cache 24 jam agar cepat dan tidak blocking)
-        $paymentChannels = Cache::remember('tripay_active_payment_channels', 86400, function () {
+        // Ambil channel pembayaran Tripay aktif (cache 1 jam agar sinkron cepat)
+        $paymentChannels = Cache::remember('tripay_active_payment_channels', 3600, function () {
             return $this->tripayService->getPaymentChannels();
         });
 
@@ -306,13 +306,16 @@ class RegistrationController extends Controller
 
         // 6. Buat Closed Transaction di Tripay jika nominal > 0
         $payment = $registration->payment;
+        $tripayError = null;
+
         if ($payment && $payment->total_amount > 0) {
             try {
                 $channel = $validated['payment_channel'] ?? config('tripay.default_channel', 'QRIS2');
                 $this->tripayService->createClosedTransaction($registration, $channel);
                 $payment->refresh();
             } catch (\Exception $e) {
-                Log::warning('Tripay transaction creation warning: '.$e->getMessage());
+                $tripayError = $e->getMessage();
+                Log::warning('Tripay transaction creation warning: '.$tripayError);
             }
         }
 
@@ -327,7 +330,12 @@ class RegistrationController extends Controller
             return redirect()->away($payment->checkout_url);
         }
 
-        return redirect()->route('payment.show', ['merchant_ref' => $payment->merchant_ref])
-            ->with('success', 'Pendaftaran berhasil dibuat! Silakan selesaikan pembayaran tagihan Anda.');
+        $redirect = redirect()->route('payment.show', ['merchant_ref' => $payment->merchant_ref]);
+
+        if ($tripayError) {
+            return $redirect->with('warning', 'Pendaftaran berhasil disimpan, namun gateway Tripay merespon: '.$tripayError.'. Silakan gunakan tombol sinkronisasi di bawah.');
+        }
+
+        return $redirect->with('success', 'Pendaftaran berhasil dibuat! Silakan selesaikan pembayaran tagihan Anda.');
     }
 }

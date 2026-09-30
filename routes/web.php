@@ -30,6 +30,7 @@ Route::post('/shop/checkout', [StorefrontController::class, 'storeOrder'])->name
 
 // Tagihan Pembayaran & Simulasi
 Route::get('/payment/{merchant_ref}', [PaymentController::class, 'show'])->name('payment.show');
+Route::match(['GET', 'POST'], '/payment/{merchant_ref}/sync', [PaymentController::class, 'syncTripay'])->name('payment.sync')->middleware('throttle:15,1');
 Route::match(['GET', 'POST'], '/payment/{merchant_ref}/simulate-pay', [PaymentController::class, 'simulateSuccess'])->name('payment.simulate')->middleware('throttle:10,1');
 
 // Universal Submission Portal (Satu Link untuk Semua Event!)

@@ -365,27 +365,28 @@
                             @endforeach
                         @else
                             <optgroup label="— E-WALLET &amp; QRIS —" class="bg-slate-950 text-slate-400 font-bold py-1">
-                                <option value="QRIS2" data-channel-name="QRIS (Semua Bank &amp; E-Wallet)" selected>QRIS (Semua Bank &amp; E-Wallet)</option>
-                                <option value="OVO" data-channel-name="OVO">OVO</option>
-                                <option value="SHOPEEPAY" data-channel-name="ShopeePay">ShopeePay</option>
-                                <option value="DANA" data-channel-name="DANA">DANA</option>
+                                <option value="QRIS2" data-channel-name="QRIS (Semua Bank &amp; E-Wallet)" {{ old('payment_channel') === 'QRIS2' || !old('payment_channel') ? 'selected' : '' }}>QRIS (Semua Bank &amp; E-Wallet)</option>
+                                <option value="OVO" data-channel-name="OVO" {{ old('payment_channel') === 'OVO' ? 'selected' : '' }}>OVO</option>
+                                <option value="SHOPEEPAY" data-channel-name="ShopeePay" {{ old('payment_channel') === 'SHOPEEPAY' ? 'selected' : '' }}>ShopeePay</option>
+                                <option value="DANA" data-channel-name="DANA" {{ old('payment_channel') === 'DANA' ? 'selected' : '' }}>DANA</option>
                             </optgroup>
                             <optgroup label="— VIRTUAL ACCOUNT —" class="bg-slate-950 text-slate-400 font-bold py-1">
-                                <option value="BCAVA" data-channel-name="BCA Virtual Account">BCA Virtual Account</option>
-                                <option value="BRIVA" data-channel-name="BRI Virtual Account">BRI Virtual Account</option>
-                                <option value="BNIVA" data-channel-name="BNI Virtual Account">BNI Virtual Account</option>
-                                <option value="MANDIRIVA" data-channel-name="Mandiri Virtual Account">Mandiri Virtual Account</option>
-                                <option value="PERMATAVA" data-channel-name="Permata Virtual Account">Permata Virtual Account</option>
-                                <option value="CIMBVA" data-channel-name="CIMB Niaga Virtual Account">CIMB Niaga Virtual Account</option>
-                                <option value="BSIVA" data-channel-name="BSI (Bank Syariah Indonesia) Virtual Account">BSI (Bank Syariah Indonesia) Virtual Account</option>
-                                <option value="DANAMONVA" data-channel-name="Danamon Virtual Account">Danamon Virtual Account</option>
-                                <option value="BNCVA" data-channel-name="Bank Neo Commerce (BNC) Virtual Account">Bank Neo Commerce (BNC) Virtual Account</option>
-                                <option value="MUAMALATVA" data-channel-name="Muamalat Virtual Account">Muamalat Virtual Account</option>
+                                <option value="BCAVA" data-channel-name="BCA Virtual Account" {{ old('payment_channel') === 'BCAVA' ? 'selected' : '' }}>BCA Virtual Account</option>
+                                <option value="BRIVA" data-channel-name="BRI Virtual Account" {{ old('payment_channel') === 'BRIVA' ? 'selected' : '' }}>BRI Virtual Account</option>
+                                <option value="BNIVA" data-channel-name="BNI Virtual Account" {{ old('payment_channel') === 'BNIVA' ? 'selected' : '' }}>BNI Virtual Account</option>
+                                <option value="MANDIRIVA" data-channel-name="Mandiri Virtual Account" {{ old('payment_channel') === 'MANDIRIVA' ? 'selected' : '' }}>Mandiri Virtual Account</option>
+                                <option value="PERMATAVA" data-channel-name="Permata Virtual Account" {{ old('payment_channel') === 'PERMATAVA' ? 'selected' : '' }}>Permata Virtual Account</option>
+                                <option value="CIMBVA" data-channel-name="CIMB Niaga Virtual Account" {{ old('payment_channel') === 'CIMBVA' ? 'selected' : '' }}>CIMB Niaga Virtual Account</option>
+                                <option value="BSIVA" data-channel-name="BSI (Bank Syariah Indonesia) Virtual Account" {{ old('payment_channel') === 'BSIVA' ? 'selected' : '' }}>BSI (Bank Syariah Indonesia) Virtual Account</option>
+                                <option value="DANAMONVA" data-channel-name="Danamon Virtual Account" {{ old('payment_channel') === 'DANAMONVA' ? 'selected' : '' }}>Danamon Virtual Account</option>
+                                <option value="MUAMALATVA" data-channel-name="Muamalat Virtual Account" {{ old('payment_channel') === 'MUAMALATVA' ? 'selected' : '' }}>Muamalat Virtual Account</option>
+                                <option value="OCBCVA" data-channel-name="OCBC NISP Virtual Account" {{ old('payment_channel') === 'OCBCVA' ? 'selected' : '' }}>OCBC NISP Virtual Account</option>
+                                <option value="OTHERBANKVA" data-channel-name="Bank Lainnya (Other Bank VA)" {{ old('payment_channel') === 'OTHERBANKVA' ? 'selected' : '' }}>Bank Lainnya (Other Bank VA)</option>
                             </optgroup>
                             <optgroup label="— GERAI RETAIL / MINIMARKET —" class="bg-slate-950 text-slate-400 font-bold py-1">
-                                <option value="ALFAMART" data-channel-name="Alfamart">Alfamart</option>
-                                <option value="INDOMARET" data-channel-name="Indomaret">Indomaret</option>
-                                <option value="ALFAMIDI" data-channel-name="Alfamidi">Alfamidi</option>
+                                <option value="ALFAMART" data-channel-name="Alfamart" {{ old('payment_channel') === 'ALFAMART' ? 'selected' : '' }}>Alfamart</option>
+                                <option value="INDOMARET" data-channel-name="Indomaret" {{ old('payment_channel') === 'INDOMARET' ? 'selected' : '' }}>Indomaret</option>
+                                <option value="ALFAMIDI" data-channel-name="Alfamidi" {{ old('payment_channel') === 'ALFAMIDI' ? 'selected' : '' }}>Alfamidi</option>
                             </optgroup>
                         @endif
                     </select>

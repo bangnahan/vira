@@ -55,4 +55,64 @@ class Payment extends Model
     {
         return $this->status === 'UNPAID';
     }
+
+    public function isUnpaid(): bool
+    {
+        return $this->status === 'UNPAID';
+    }
+
+    public function getPaymentMethodNameAttribute(): string
+    {
+        if (! empty($this->raw_callback['payment_name'])) {
+            return (string) $this->raw_callback['payment_name'];
+        }
+
+        $code = strtoupper((string) $this->payment_method);
+        $names = [
+            'QRIS2' => 'QRIS (Semua Bank & E-Wallet)',
+            'QRIS' => 'QRIS (Semua Bank & E-Wallet)',
+            'BCAVA' => 'BCA Virtual Account',
+            'BNIVA' => 'BNI Virtual Account',
+            'BRIVA' => 'BRI Virtual Account',
+            'MANDIRIVA' => 'Mandiri Virtual Account',
+            'PERMATAVA' => 'Permata Virtual Account',
+            'CIMBVA' => 'CIMB Niaga Virtual Account',
+            'BSIVA' => 'BSI Virtual Account',
+            'DANAMONVA' => 'Danamon Virtual Account',
+            'MUAMALATVA' => 'Muamalat Virtual Account',
+            'OCBCVA' => 'OCBC NISP Virtual Account',
+            'OTHERBANKVA' => 'Bank Lainnya (Other Bank VA)',
+            'OVO' => 'OVO',
+            'DANA' => 'DANA',
+            'SHOPEEPAY' => 'ShopeePay',
+            'ALFAMART' => 'Alfamart',
+            'INDOMARET' => 'Indomaret',
+            'ALFAMIDI' => 'Alfamidi',
+        ];
+
+        return $names[$code] ?? $this->payment_method;
+    }
+
+    public function isQris(): bool
+    {
+        return str_contains(strtoupper((string) $this->payment_method), 'QRIS');
+    }
+
+    public function isVirtualAccount(): bool
+    {
+        return str_ends_with(strtoupper((string) $this->payment_method), 'VA');
+    }
+
+    public function isEwallet(): bool
+    {
+        return in_array(strtoupper((string) $this->payment_method), ['OVO', 'DANA', 'SHOPEEPAY', 'LINKAJA']);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getInstructions(): array
+    {
+        return $this->raw_callback['instructions'] ?? [];
+    }
 }

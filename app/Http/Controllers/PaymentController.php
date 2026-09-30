@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Payment;
 use App\Services\MailketingService;
 use App\Services\MetaCapiService;
+use App\Services\TripayService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +16,8 @@ class PaymentController extends Controller
 {
     public function __construct(
         protected MailketingService $mailketingService,
-        protected MetaCapiService $metaCapiService
+        protected MetaCapiService $metaCapiService,
+        protected TripayService $tripayService
     ) {}
 
     /**
@@ -35,7 +37,50 @@ class PaymentController extends Controller
             ->where('merchant_ref', $merchant_ref)
             ->firstOrFail();
 
-        return view('payments.show', compact('payment'));
+        $tripayError = null;
+
+        // Auto-sync jika pembayaran belum lunas dan belum memiliki info Tripay
+        if ($payment->isPending() && $payment->total_amount > 0 && empty($payment->pay_code) && empty($payment->qr_code_url) && empty($payment->checkout_url)) {
+            try {
+                $this->tripayService->createClosedTransaction($payment->registration, $payment->payment_method);
+                $payment->refresh();
+            } catch (\Throwable $e) {
+                $tripayError = $e->getMessage();
+                Log::warning("Payment auto-sync failed for {$merchant_ref}: {$tripayError}");
+            }
+        }
+
+        return view('payments.show', compact('payment', 'tripayError'));
+    }
+
+    /**
+     * Sinkronkan ulang tagihan dengan Tripay jika sebelumnya gagal atau belum terbit.
+     */
+    public function syncTripay(string $merchant_ref): RedirectResponse
+    {
+        $payment = Payment::with('registration')
+            ->where('merchant_ref', $merchant_ref)
+            ->firstOrFail();
+
+        if ($payment->isPaid()) {
+            return redirect()->route('payment.show', ['merchant_ref' => $merchant_ref])
+                ->with('info', 'Tagihan ini sudah lunas sebelumnya.');
+        }
+
+        try {
+            $this->tripayService->createClosedTransaction($payment->registration, $payment->payment_method);
+            $payment->refresh();
+
+            if (! empty($payment->checkout_url)) {
+                return redirect()->away($payment->checkout_url);
+            }
+
+            return redirect()->route('payment.show', ['merchant_ref' => $merchant_ref])
+                ->with('success', 'Tagihan Tripay berhasil disinkronkan!');
+        } catch (\Throwable $e) {
+            return redirect()->route('payment.show', ['merchant_ref' => $merchant_ref])
+                ->with('error', 'Gagal menyinkronkan tagihan Tripay: '.$e->getMessage());
+        }
     }
 
     /**

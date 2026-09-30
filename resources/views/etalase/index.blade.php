@@ -349,8 +349,9 @@
                                 <option value="CIMBVA">CIMB Niaga Virtual Account</option>
                                 <option value="BSIVA">BSI (Bank Syariah Indonesia) Virtual Account</option>
                                 <option value="DANAMONVA">Danamon Virtual Account</option>
-                                <option value="BNCVA">Bank Neo Commerce (BNC) Virtual Account</option>
                                 <option value="MUAMALATVA">Muamalat Virtual Account</option>
+                                <option value="OCBCVA">OCBC NISP Virtual Account</option>
+                                <option value="OTHERBANKVA">Bank Lainnya (Other Bank VA)</option>
                             </optgroup>
                             <optgroup label="— GERAI RETAIL / MINIMARKET —" class="bg-slate-950 text-slate-400 font-bold">
                                 <option value="ALFAMART">Alfamart</option>
