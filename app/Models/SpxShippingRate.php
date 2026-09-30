@@ -56,30 +56,49 @@ class SpxShippingRate extends Model
         $costHemat = (float) $rate->rate_hemat * $weightKg;
         $costRegular = (float) $rate->rate_regular * $weightKg;
 
+        $activeService = Setting::get('spx_active_services', 'ALL');
+
+        $services = [];
+        if ($activeService === 'ALL' || $activeService === 'SPX_HEMAT') {
+            $services[] = [
+                'service_code' => 'SPX_HEMAT',
+                'service_name' => 'SPX Hemat (Ekonomi)',
+                'rate_per_kg' => (float) $rate->rate_hemat,
+                'total_cost' => $costHemat,
+                'etd_days' => $rate->sla_hemat_days,
+                'etd_text' => "{$rate->sla_hemat_days} hari",
+            ];
+        }
+
+        if ($activeService === 'ALL' || $activeService === 'SPX_REGULAR') {
+            $services[] = [
+                'service_code' => 'SPX_REGULAR',
+                'service_name' => 'SPX Regular (Standar)',
+                'rate_per_kg' => (float) $rate->rate_regular,
+                'total_cost' => $costRegular,
+                'etd_days' => $rate->sla_regular_days,
+                'etd_text' => "{$rate->sla_regular_days} hari",
+            ];
+        }
+
+        if (empty($services)) {
+            $services[] = [
+                'service_code' => 'SPX_REGULAR',
+                'service_name' => 'SPX Regular (Standar)',
+                'rate_per_kg' => (float) $rate->rate_regular,
+                'total_cost' => $costRegular,
+                'etd_days' => $rate->sla_regular_days,
+                'etd_text' => "{$rate->sla_regular_days} hari",
+            ];
+        }
+
         return [
             'origin' => $rate->origin_city,
             'destination_city' => $rate->destination_city,
             'destination_district' => $rate->destination_district,
             'weight_grams' => $weightGrams,
             'chargeable_kg' => $weightKg,
-            'services' => [
-                [
-                    'service_code' => 'SPX_HEMAT',
-                    'service_name' => 'SPX Hemat (Ekonomi)',
-                    'rate_per_kg' => (float) $rate->rate_hemat,
-                    'total_cost' => $costHemat,
-                    'etd_days' => $rate->sla_hemat_days,
-                    'etd_text' => "{$rate->sla_hemat_days} hari",
-                ],
-                [
-                    'service_code' => 'SPX_REGULAR',
-                    'service_name' => 'SPX Regular (Standar)',
-                    'rate_per_kg' => (float) $rate->rate_regular,
-                    'total_cost' => $costRegular,
-                    'etd_days' => $rate->sla_regular_days,
-                    'etd_text' => "{$rate->sla_regular_days} hari",
-                ],
-            ],
+            'services' => $services,
         ];
     }
 }

@@ -77,6 +77,10 @@
                             <span>Data Peserta</span>
                             <span class="text-[9px] bg-cyan-500/20 text-[#00E5FF] font-bold px-1.5 py-0.5 rounded border border-cyan-500/30">Live</span>
                         </a>
+                        <a href="{{ route('admin.shipping-settings.index') }}" class="px-3.5 py-2 rounded-lg text-sm font-semibold {{ request()->routeIs('admin.shipping-settings.*') ? 'text-[#FF5500] bg-slate-800/80 border border-slate-700' : 'text-slate-300 hover:text-white hover:bg-slate-800/40' }} transition flex items-center gap-1.5">
+                            <span>Ekspedisi SPX</span>
+                            <span class="text-[9px] bg-orange-500/20 text-[#FF5500] font-bold px-1.5 py-0.5 rounded border border-orange-500/30">Ongkir</span>
+                        </a>
                     </nav>
 
                     <!-- Admin Action & Profile & Logout -->
@@ -220,6 +224,13 @@
                         <span>Data Peserta &amp; Tagihan</span>
                     </span>
                     <span class="text-[10px] bg-cyan-500/20 text-[#00E5FF] font-bold px-2 py-0.5 rounded border border-cyan-500/30">Data</span>
+                </a>
+                <a href="{{ route('admin.shipping-settings.index') }}" class="flex items-center justify-between p-3 rounded-xl text-sm font-semibold {{ request()->routeIs('admin.shipping-settings.*') ? 'bg-[#FF5500]/10 text-[#FF5500] border border-[#FF5500]/30' : 'text-slate-200 hover:bg-slate-800/60' }} transition">
+                    <span class="flex items-center gap-3">
+                        <span class="text-base">🚚</span>
+                        <span>Pengaturan Ekspedisi SPX</span>
+                    </span>
+                    <span class="text-[10px] bg-orange-500/20 text-[#FF5500] font-bold px-2 py-0.5 rounded border border-orange-500/30">Ongkir</span>
                 </a>
                 <a href="{{ route('home') }}" target="_blank" class="flex items-center justify-between p-3 rounded-xl text-sm font-bold text-slate-300 hover:text-white bg-slate-900 border border-slate-700 transition mt-2">
                     <span class="flex items-center gap-2.5">

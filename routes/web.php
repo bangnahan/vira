@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AddOnController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\DesignerController;
 use App\Http\Controllers\Admin\RegistrationManagementController;
+use App\Http\Controllers\Admin\ShippingSettingController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ParticipantDownloadController;
@@ -75,4 +76,8 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     // Pengaturan Item Add-ons & Merchandise
     Route::patch('/addons/{addon}/toggle-status', [AddOnController::class, 'toggleStatus'])->name('admin.addons.toggle-status');
     Route::resource('addons', AddOnController::class)->names('admin.addons');
+
+    // Pengaturan Ekspedisi SPX Express (Layanan Aktif: Hemat / Reguler / Semua)
+    Route::get('/shipping-settings', [ShippingSettingController::class, 'index'])->name('admin.shipping-settings.index');
+    Route::put('/shipping-settings', [ShippingSettingController::class, 'update'])->name('admin.shipping-settings.update');
 });
