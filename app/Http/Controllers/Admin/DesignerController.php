@@ -132,7 +132,7 @@ class DesignerController extends Controller
 
         // Data dummy untuk live preview lengkap (hasil cetak akhir)
         if ($type === 'BIB') {
-            $sampleBib = $event->event_code.'-10K-0024';
+            $sampleBib = '1001';
             $dummyData = [
                 'bib_number' => $sampleBib,
                 'participant_name' => 'BUDI PRATAMA',
@@ -143,7 +143,7 @@ class DesignerController extends Controller
 
             $png = $renderService->renderBib($template, $dummyData);
         } else {
-            $sampleBib = $event->event_code.'-10K-0024';
+            $sampleBib = '1001';
             $dummyData = [
                 'participant_name' => 'BUDI PRATAMA',
                 'category_name' => '10K Challenge Run',

@@ -74,16 +74,16 @@
                 <div class="relative bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-inner flex items-center justify-center p-1 select-none">
                     
                     <div id="simpleCanvasStage" 
-                         class="relative w-full overflow-hidden rounded-lg cursor-default"
+                         class="relative w-full overflow-hidden rounded-lg cursor-default select-none"
                          style="aspect-ratio: {{ $template->canvas_width }} / {{ $template->canvas_height }};">
                         
-                        <!-- Background Template Image (Polos Tanpa Teks Dobel di Mode Desain) -->
+                        <!-- Background Template Image (Resampled 100% presisi pixel) -->
                         <img id="templateBgImage" 
                              src="{{ route('admin.designer.preview', ['event' => $event->id, 'type' => $type, 'blank' => 1]) }}&t={{ time() }}" 
                              data-blank-url="{{ route('admin.designer.preview', ['event' => $event->id, 'type' => $type, 'blank' => 1]) }}"
                              data-full-url="{{ route('admin.designer.preview', ['event' => $event->id, 'type' => $type]) }}"
                              alt="Template Background" 
-                             class="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-0">
+                             class="absolute inset-0 w-full h-full object-fill pointer-events-none select-none z-0">
 
                         <!-- Lapisan Teks Interaktif Drag & Drop -->
                         <div id="dragLayer" class="absolute inset-0 z-10 pointer-events-auto">
@@ -118,23 +118,23 @@
                                      data-key="{{ $el['key'] }}"
                                      data-index="{{ $i }}"
                                      data-font-size="{{ $el['font_size'] ?? 36 }}"
-                                     class="drag-text-item absolute cursor-move group select-none transition-[box-shadow] duration-75 {{ $isVisible ? '' : 'hidden' }}"
-                                     style="left: {{ $leftPct }}%; top: {{ $topPct }}%; transform: translate({{ $translateX }}, -50%);">
+                                     class="drag-text-item absolute cursor-grab active:cursor-grabbing select-none whitespace-nowrap touch-none {{ $isVisible ? '' : 'hidden' }}"
+                                     style="left: {{ $leftPct }}%; top: {{ $topPct }}%; transform: translate({{ $translateX }}, -50%); z-index: 10;">
                                     
-                                    <!-- Label Badge Ringkas (Hanya muncul saat hover / drag) -->
-                                    <div class="opacity-0 group-hover:opacity-100 group-[.is-dragging]:opacity-100 transition-opacity absolute -top-5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-slate-900/95 border border-cyan-500/60 text-[9px] font-bold text-cyan-300 whitespace-nowrap shadow-lg pointer-events-none z-30">
+                                    <!-- Label Badge Ringkas (Muncul saat hover / aktif) -->
+                                    <div class="el-badge opacity-0 pointer-events-none transition-opacity duration-150 absolute -top-5 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded bg-slate-900/95 border border-cyan-500/80 text-[9px] font-bold text-cyan-300 whitespace-nowrap shadow-xl z-50">
                                         {{ $el['label'] ?? $el['key'] }}
                                     </div>
 
                                     <!-- Teks Asli yang Ditampilkan & Bisa Digeser -->
-                                    <div class="px-2 py-0.5 rounded border border-transparent group-hover:border-cyan-400/60 group-hover:bg-cyan-500/10 transition-all font-bold tracking-wide"
+                                    <div class="el-box px-2 py-0.5 rounded border border-transparent hover:border-cyan-400/80 hover:bg-cyan-500/10 transition-colors font-bold tracking-wide {{ $el['key'] === 'bib_number' ? 'font-athletic tracking-wider' : '' }}"
                                          style="color: {{ $el['color'] ?? '#FFFFFF' }};">
                                         @if(($el['key'] ?? '') === 'qr_code')
-                                            <div class="w-12 h-12 border-2 border-dashed border-cyan-400 bg-black/40 rounded flex items-center justify-center text-[10px] text-cyan-300 font-mono">
+                                            <div class="w-12 h-12 border-2 border-dashed border-cyan-400 bg-black/60 rounded flex items-center justify-center text-[10px] text-cyan-300 font-mono shadow-md">
                                                 QR CODE
                                             </div>
                                         @else
-                                            <span class="preview-text-content pointer-events-none" style="display: inline-block;">{{ $sampleText }}</span>
+                                            <span class="preview-text-content pointer-events-none select-none inline-block leading-none">{{ $sampleText }}</span>
                                         @endif
                                     </div>
                                 </div>
@@ -144,7 +144,7 @@
                 </div>
 
                 <div class="mt-2 flex items-center justify-between text-[11px] text-slate-400 px-1">
-                    <span>💡 <strong>Tip:</strong> Klik teks di kanvas dan geser langsung ke posisi yang pas.</span>
+                    <span>💡 <strong>Tip:</strong> Klik teks di kanvas dan geser langsung, atau ubah angka koordinat X &amp; Y di sidebar.</span>
                     <button type="button" id="refreshBtn" class="text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1">
                         <span>🔄 Segarkan Gambar</span>
                     </button>
@@ -178,14 +178,15 @@
             <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
                 <div class="flex items-center justify-between pb-2 border-b border-slate-800">
                     <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                        <span class="text-[#00E5FF]">2.</span> Daftar Elemen &amp; Warna
+                        <span class="text-[#00E5FF]">2.</span> Daftar Elemen &amp; Koordinat
                     </h3>
                     <span class="text-[11px] text-slate-400">{{ count($elements) }} Item</span>
                 </div>
 
-                <div class="space-y-2.5 max-h-[520px] overflow-y-auto pr-1 no-scrollbar">
+                <div class="space-y-2.5 max-h-[520px] overflow-y-auto pr-1 no-scrollbar" id="elementsSidebarList">
                     @foreach($elements as $i => $el)
-                        <div class="p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2">
+                        <div class="element-card p-3 rounded-xl bg-slate-950 border border-slate-800/80 space-y-2.5 transition hover:border-slate-700"
+                             data-key="{{ $el['key'] }}">
                             
                             <!-- Header Item: Checkbox & Nama -->
                             <div class="flex items-center justify-between">
@@ -199,20 +200,44 @@
                                     <span class="font-bold text-xs text-white">{{ $el['label'] ?? $el['key'] }}</span>
                                 </label>
                                 
-                                <span class="text-[10px] font-mono text-slate-500 coord-display" data-key="{{ $el['key'] }}">
-                                    X: {{ $el['x'] ?? 0 }}, Y: {{ $el['y'] ?? 0 }}
+                                <span class="text-[9px] font-mono font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-800/50 px-1.5 py-0.5 rounded tracking-wider uppercase">
+                                    {{ $el['key'] }}
                                 </span>
 
                                 <input type="hidden" name="elements[{{ $i }}][key]" value="{{ $el['key'] }}">
                                 <input type="hidden" name="elements[{{ $i }}][label]" value="{{ $el['label'] ?? $el['key'] }}">
-                                <!-- Hidden Koordinat yang Otomatis Terisi oleh Drag & Drop -->
-                                <input type="hidden" name="elements[{{ $i }}][x]" value="{{ $el['x'] ?? 0 }}" data-key="{{ $el['key'] }}" data-axis="x">
-                                <input type="hidden" name="elements[{{ $i }}][y]" value="{{ $el['y'] ?? 0 }}" data-key="{{ $el['key'] }}" data-axis="y">
+                                <input type="hidden" name="elements[{{ $i }}][align]" value="{{ $el['align'] ?? 'center' }}">
+                            </div>
+
+                            <!-- Input Koordinat Presisi X & Y -->
+                            <div class="grid grid-cols-2 gap-2 text-xs pt-0.5">
+                                <div>
+                                    <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Posisi X (px)</label>
+                                    <input type="number" 
+                                           name="elements[{{ $i }}][x]" 
+                                           value="{{ $el['x'] ?? 0 }}" 
+                                           data-key="{{ $el['key'] }}" 
+                                           data-axis="x"
+                                           min="0"
+                                           max="{{ $template->canvas_width }}"
+                                           class="coord-input w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Posisi Y (px)</label>
+                                    <input type="number" 
+                                           name="elements[{{ $i }}][y]" 
+                                           value="{{ $el['y'] ?? 0 }}" 
+                                           data-key="{{ $el['key'] }}" 
+                                           data-axis="y"
+                                           min="0"
+                                           max="{{ $template->canvas_height }}"
+                                           class="coord-input w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none">
+                                </div>
                             </div>
 
                             @if(($el['key'] ?? '') !== 'qr_code')
-                                <!-- Opsi Tampilan Sederhana: Ukuran & Warna -->
-                                <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+                                <!-- Opsi Ukuran Font & Warna -->
+                                <div class="grid grid-cols-2 gap-2 text-xs pt-0.5">
                                     <div>
                                         <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Ukuran Font</label>
                                         <input type="number" 
@@ -221,7 +246,7 @@
                                                min="12" 
                                                max="150"
                                                data-key="{{ $el['key'] }}"
-                                               class="el-fontsize-input w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs">
+                                               class="el-fontsize-input w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none">
                                     </div>
                                     <div>
                                         <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Warna Teks</label>
@@ -234,21 +259,19 @@
                                                    name="elements[{{ $i }}][color]" 
                                                    value="{{ $el['color'] ?? '#FFFFFF' }}" 
                                                    data-key="{{ $el['key'] }}"
-                                                   class="el-colortext-input w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-white font-mono text-[10px] uppercase">
+                                                   class="el-colortext-input w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-white font-mono text-[10px] uppercase focus:border-cyan-400 focus:outline-none">
                                         </div>
                                     </div>
-
-                                    <input type="hidden" name="elements[{{ $i }}][align]" value="{{ $el['align'] ?? 'center' }}">
                                 </div>
                             @else
-                                <div class="pt-1">
+                                <div class="pt-0.5">
                                     <label class="block text-[10px] font-semibold text-slate-400 mb-0.5">Ukuran QR Code (px)</label>
                                     <input type="number" 
                                            name="elements[{{ $i }}][size]" 
                                            value="{{ $el['size'] ?? 100 }}" 
                                            min="40" 
                                            max="400"
-                                           class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-mono">
+                                           class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-white text-xs font-mono focus:border-cyan-400 focus:outline-none">
                                 </div>
                             @endif
                         </div>
@@ -301,11 +324,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         dragItems.forEach(item => {
             const baseFontSize = parseInt(item.dataset.fontSize, 10) || 36;
+            const renderedFontSize = Math.max(10, Math.round(baseFontSize * scale));
+            item.style.fontSize = renderedFontSize + 'px';
+            item.style.lineHeight = '1';
+
             const textContent = item.querySelector('.preview-text-content');
             if (textContent) {
-                // Skala font secara akurat sesuai rasio kanvas
-                const renderedFontSize = Math.max(10, Math.round(baseFontSize * scale));
                 textContent.style.fontSize = renderedFontSize + 'px';
+                textContent.style.lineHeight = '1';
             }
         });
     }
@@ -352,91 +378,153 @@ document.addEventListener('DOMContentLoaded', function() {
         refreshBtn.addEventListener('click', refreshCanvasBg);
     }
 
-    // SISTEM DRAG & DROP SEDERHANA
-    let activeItem = null;
-    let startX = 0;
-    let startY = 0;
-    let initialLeftPct = 0;
-    let initialTopPct = 0;
+    // SISTEM SELEKSI ELEMEN & Z-INDEX MANAGEMENT
+    let selectedKey = null;
 
-    dragItems.forEach(item => {
-        item.addEventListener('mousedown', onPointerDown);
-        item.addEventListener('touchstart', onPointerDown, { passive: false });
+    function selectElement(key) {
+        selectedKey = key;
+
+        dragItems.forEach(item => {
+            const isSel = item.dataset.key === key;
+            const box = item.querySelector('.el-box');
+            const badge = item.querySelector('.el-badge');
+
+            if (isSel) {
+                item.style.zIndex = '50';
+                if (box) {
+                    box.classList.add('ring-2', 'ring-cyan-400', 'bg-cyan-500/20');
+                }
+                if (badge) {
+                    badge.classList.remove('opacity-0');
+                }
+            } else {
+                item.style.zIndex = '10';
+                if (box) {
+                    box.classList.remove('ring-2', 'ring-cyan-400', 'bg-cyan-500/20');
+                }
+                if (badge) {
+                    badge.classList.add('opacity-0');
+                }
+            }
+        });
+
+        document.querySelectorAll('.element-card').forEach(card => {
+            if (card.dataset.key === key) {
+                card.classList.add('ring-2', 'ring-[#00E5FF]/70', 'border-[#00E5FF]/50');
+            } else {
+                card.classList.remove('ring-2', 'ring-[#00E5FF]/70', 'border-[#00E5FF]/50');
+            }
+        });
+    }
+
+    // Klik kartu di sidebar untuk langsung memilih dan menaikkan elemen di kanvas
+    document.querySelectorAll('.element-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (e.target.closest('input') || e.target.closest('button')) return;
+            selectElement(this.dataset.key);
+        });
     });
 
-    function onPointerDown(e) {
-        activeItem = this;
-        activeItem.classList.add('is-dragging', 'z-30');
+    // SISTEM DRAG & DROP DENGAN POINTER EVENTS & POINTER CAPTURE
+    let activeItem = null;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeftPct = 0;
+    let startTopPct = 0;
 
-        const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
-        const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+    dragItems.forEach(item => {
+        item.addEventListener('pointerdown', function(e) {
+            if (e.button !== 0 && e.pointerType === 'mouse') return;
 
-        startX = clientX;
-        startY = clientY;
+            activeItem = this;
+            isDragging = true;
+            try {
+                activeItem.setPointerCapture(e.pointerId);
+            } catch (_) {}
 
-        initialLeftPct = parseFloat(activeItem.style.left) || 50;
-        initialTopPct = parseFloat(activeItem.style.top) || 50;
+            selectElement(activeItem.dataset.key);
 
-        document.addEventListener('mousemove', onPointerMove);
-        document.addEventListener('mouseup', onPointerUp);
-        document.addEventListener('touchmove', onPointerMove, { passive: false });
-        document.addEventListener('touchend', onPointerUp);
+            startX = e.clientX;
+            startY = e.clientY;
 
-        e.preventDefault();
-    }
+            startLeftPct = parseFloat(activeItem.style.left);
+            if (isNaN(startLeftPct)) startLeftPct = 50;
 
-    function onPointerMove(e) {
-        if (!activeItem) return;
+            startTopPct = parseFloat(activeItem.style.top);
+            if (isNaN(startTopPct)) startTopPct = 50;
 
-        const stageRect = stage.getBoundingClientRect();
-        if (stageRect.width <= 0 || stageRect.height <= 0) return;
+            e.preventDefault();
+        });
 
-        const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
-        const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+        item.addEventListener('pointermove', function(e) {
+            if (!isDragging || activeItem !== this) return;
 
-        const deltaPxX = clientX - startX;
-        const deltaPxY = clientY - startY;
+            const stageRect = stage.getBoundingClientRect();
+            if (stageRect.width <= 0 || stageRect.height <= 0) return;
 
-        const deltaPctX = (deltaPxX / stageRect.width) * 100;
-        const deltaPctY = (deltaPxY / stageRect.height) * 100;
+            const deltaPxX = e.clientX - startX;
+            const deltaPxY = e.clientY - startY;
 
-        let newLeftPct = Math.max(0, Math.min(100, initialLeftPct + deltaPctX));
-        let newTopPct = Math.max(0, Math.min(100, initialTopPct + deltaPctY));
+            const deltaPctX = (deltaPxX / stageRect.width) * 100;
+            const deltaPctY = (deltaPxY / stageRect.height) * 100;
 
-        activeItem.style.left = newLeftPct + '%';
-        activeItem.style.top = newTopPct + '%';
+            let newLeftPct = Math.max(0, Math.min(100, startLeftPct + deltaPctX));
+            let newTopPct = Math.max(0, Math.min(100, startTopPct + deltaPctY));
 
-        // Hitung koordinat kanvas pixel sebenarnya
-        const canvasX = Math.round((newLeftPct / 100) * canvasWidth);
-        const canvasY = Math.round((newTopPct / 100) * canvasHeight);
+            activeItem.style.left = newLeftPct + '%';
+            activeItem.style.top = newTopPct + '%';
 
-        const key = activeItem.dataset.key;
+            const canvasX = Math.round((newLeftPct / 100) * canvasWidth);
+            const canvasY = Math.round((newTopPct / 100) * canvasHeight);
+            const key = activeItem.dataset.key;
 
-        // Update hidden inputs di form
-        const inputX = document.querySelector(`input[data-key="${key}"][data-axis="x"]`);
-        const inputY = document.querySelector(`input[data-key="${key}"][data-axis="y"]`);
-        if (inputX) inputX.value = canvasX;
-        if (inputY) inputY.value = canvasY;
+            // Live sync ke input koordinat di sidebar
+            const inputX = document.querySelector(`.coord-input[data-key="${key}"][data-axis="x"]`);
+            const inputY = document.querySelector(`.coord-input[data-key="${key}"][data-axis="y"]`);
+            if (inputX) inputX.value = canvasX;
+            if (inputY) inputY.value = canvasY;
 
-        // Update indikator teks kecil
-        const coordText = document.querySelector(`.coord-display[data-key="${key}"]`);
-        if (coordText) coordText.textContent = `X: ${canvasX}, Y: ${canvasY}`;
+            if (e.cancelable) e.preventDefault();
+        });
 
-        if (e.cancelable) e.preventDefault();
-    }
+        function endDrag(e) {
+            if (activeItem === this) {
+                try {
+                    this.releasePointerCapture(e.pointerId);
+                } catch (_) {}
+                isDragging = false;
+                activeItem = null;
+            }
+        }
 
-    function onPointerUp() {
-        if (!activeItem) return;
-        activeItem.classList.remove('is-dragging', 'z-30');
-        activeItem = null;
+        item.addEventListener('pointerup', endDrag);
+        item.addEventListener('pointercancel', endDrag);
+    });
 
-        document.removeEventListener('mousemove', onPointerMove);
-        document.removeEventListener('mouseup', onPointerUp);
-        document.removeEventListener('touchmove', onPointerMove);
-        document.removeEventListener('touchend', onPointerUp);
-    }
+    // SINKRONISASI DUA ARAH: Edit angka koordinat X & Y di sidebar langsung menggeser kanvas
+    document.querySelectorAll('.coord-input').forEach(input => {
+        input.addEventListener('input', function() {
+            const key = this.dataset.key;
+            const axis = this.dataset.axis;
+            const val = parseInt(this.value, 10);
+            if (isNaN(val)) return;
 
-    // KONTROL SEDERHANA DI FORM:
+            const item = document.getElementById('drag-item-' + key);
+            if (!item) return;
+
+            selectElement(key);
+
+            if (axis === 'x') {
+                const leftPct = (val / canvasWidth) * 100;
+                item.style.left = Math.max(0, Math.min(100, leftPct)) + '%';
+            } else if (axis === 'y') {
+                const topPct = (val / canvasHeight) * 100;
+                item.style.top = Math.max(0, Math.min(100, topPct)) + '%';
+            }
+        });
+    });
+
     // 1. Tampilkan / Sembunyikan elemen
     document.querySelectorAll('.el-visible-chk').forEach(chk => {
         chk.addEventListener('change', function() {
@@ -445,6 +533,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (item) {
                 if (this.checked) {
                     item.classList.remove('hidden');
+                    selectElement(key);
                 } else {
                     item.classList.add('hidden');
                 }
@@ -462,7 +551,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const item = document.getElementById('drag-item-' + key);
             if (item) {
-                const textElem = item.querySelector('div:last-child');
+                const textElem = item.querySelector('.el-box');
                 if (textElem) textElem.style.color = val;
             }
         });
@@ -477,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const item = document.getElementById('drag-item-' + key);
             if (item) {
-                const textElem = item.querySelector('div:last-child');
+                const textElem = item.querySelector('.el-box');
                 if (textElem) textElem.style.color = val;
             }
         });

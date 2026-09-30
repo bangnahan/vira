@@ -77,7 +77,6 @@ class CanvasRenderService
         ob_start();
         imagepng($im);
         $pngData = ob_get_clean();
-        imagedestroy($im);
 
         return $pngData;
     }
@@ -138,7 +137,6 @@ class CanvasRenderService
         ob_start();
         imagepng($im);
         $pngData = ob_get_clean();
-        imagedestroy($im);
 
         return $pngData;
     }
@@ -157,7 +155,6 @@ class CanvasRenderService
         ob_start();
         imagepng($im);
         $pngData = ob_get_clean();
-        imagedestroy($im);
 
         return $pngData;
     }
@@ -173,15 +170,31 @@ class CanvasRenderService
             $fullPath = Storage::disk('public')->path($bgPath);
             $info = getimagesize($fullPath);
             if ($info) {
+                $rawImg = null;
                 switch ($info[2]) {
                     case IMAGETYPE_JPEG:
-                        return imagecreatefromjpeg($fullPath);
+                        $rawImg = imagecreatefromjpeg($fullPath);
+                        break;
                     case IMAGETYPE_PNG:
-                        $img = imagecreatefrompng($fullPath);
-                        imagealphablending($img, true);
-                        imagesavealpha($img, true);
+                        $rawImg = imagecreatefrompng($fullPath);
+                        break;
+                }
 
-                        return $img;
+                if ($rawImg) {
+                    $srcW = (int) $info[0];
+                    $srcH = (int) $info[1];
+
+                    if ($srcW === $width && $srcH === $height) {
+                        return $rawImg;
+                    }
+
+                    // Resample background agar presisi sama dengan canvas ($width x $height)
+                    $resampled = imagecreatetruecolor($width, $height);
+                    imagealphablending($resampled, true);
+                    imagesavealpha($resampled, true);
+                    imagecopyresampled($resampled, $rawImg, 0, 0, 0, 0, $width, $height, $srcW, $srcH);
+
+                    return $resampled;
                 }
             }
         }
@@ -235,6 +248,8 @@ class CanvasRenderService
 
     /**
      * Gambar teks dengan perataan (left, center, right) berdasarkan koordinat X dan Y.
+     * Menggunakan perhitungan bounding box TrueType agar posisi teks 100% presisi
+     * sama persis dengan visual preview di CSS (transform: translate(..., -50%)).
      */
     protected function drawAlignedText($im, int $size, int $angle, int $x, int $y, string $hexColor, string $fontFile, string $text, string $align): void
     {
@@ -242,20 +257,34 @@ class CanvasRenderService
         $color = imagecolorallocate($im, $rgb['r'], $rgb['g'], $rgb['b']);
 
         $box = imagettfbbox($size, $angle, $fontFile, $text);
-        $textWidth = abs($box[4] - $box[0]);
+        $minX = min($box[0], $box[6]);
+        $maxX = max($box[2], $box[4]);
+        $textWidth = $maxX - $minX;
 
+        $minY = min($box[1], $box[3], $box[5], $box[7]);
+        $maxY = max($box[1], $box[3], $box[5], $box[7]);
+        $textHeight = $maxY - $minY;
+
+        // Hitung koordinat horizontal X
         $finalX = $x;
         if ($align === 'center') {
-            $finalX = (int) round($x - ($textWidth / 2));
+            $finalX = (int) round($x - ($textWidth / 2) - $minX);
         } elseif ($align === 'right') {
-            $finalX = (int) round($x - $textWidth);
+            $finalX = (int) round($x - $textWidth - $minX);
+        } else {
+            $finalX = (int) round($x - $minX);
         }
 
-        imagettftext($im, $size, $angle, $finalX, $y, $color, $fontFile, $text);
+        // Hitung koordinat vertikal Y (baseline) agar teks terpusat secara vertikal tepat di $y
+        // Meniru perilaku CSS `top: Y%; transform: translateY(-50%);`
+        $finalY = (int) round($y + ($textHeight / 2) - $maxY);
+
+        imagettftext($im, $size, $angle, $finalX, $finalY, $color, $fontFile, $text);
     }
 
     /**
      * Gambar QR code verifikasi 2D asli yang dapat di-scan oleh smartphone.
+     * Koordinat X dan Y merujuk ke titik tengah QR Code, sama persis dengan CSS transform: translate(-50%, -50%).
      */
     protected function drawQrCode($im, int $x, int $y, int $size, string $code): void
     {
@@ -268,6 +297,9 @@ class CanvasRenderService
         if (! str_starts_with($code, 'http://') && ! str_starts_with($code, 'https://')) {
             $code = route('submit.index', ['bib' => $code]);
         }
+
+        $drawX = (int) round($x - ($size / 2));
+        $drawY = (int) round($y - ($size / 2));
 
         try {
             $options = new QROptions([
@@ -287,19 +319,18 @@ class CanvasRenderService
 
             // Background putih solid di balik QR code agar kontras di latar belakang gelap/motif
             $white = imagecolorallocate($im, 255, 255, 255);
-            imagefilledrectangle($im, $x, $y, $x + $size, $y + $size, $white);
+            imagefilledrectangle($im, $drawX, $drawY, $drawX + $size, $drawY + $size, $white);
 
             // Copy resampled QR code langsung ke kanvas dengan resolusi tajam
-            imagecopyresampled($im, $qrImage, $x, $y, 0, 0, $size, $size, $srcW, $srcH);
-            imagedestroy($qrImage);
+            imagecopyresampled($im, $qrImage, $drawX, $drawY, 0, 0, $size, $size, $srcW, $srcH);
         } catch (\Throwable $e) {
             // Fallback cadangan jika terjadi error render QR
             $white = imagecolorallocate($im, 255, 255, 255);
             $black = imagecolorallocate($im, 10, 10, 10);
-            imagefilledrectangle($im, $x, $y, $x + $size, $y + $size, $white);
-            imagerectangle($im, $x, $y, $x + $size, $y + $size, $black);
+            imagefilledrectangle($im, $drawX, $drawY, $drawX + $size, $drawY + $size, $white);
+            imagerectangle($im, $drawX, $drawY, $drawX + $size, $drawY + $size, $black);
             $fontSize = max(8, (int) ($size * 0.08));
-            $this->drawAlignedText($im, $fontSize, 0, $x + (int) ($size / 2), $y + (int) ($size / 2), '#000000', $this->boldFont, substr($code, 0, 10), 'center');
+            $this->drawAlignedText($im, $fontSize, 0, $x, $y, '#000000', $this->boldFont, substr($code, 0, 10), 'center');
         }
     }
 
