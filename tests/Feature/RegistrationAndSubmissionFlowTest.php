@@ -121,6 +121,8 @@ class RegistrationAndSubmissionFlowTest extends TestCase
             ->assertSee('Form Pendaftaran Guest')
             ->assertSee('citySearchInput')
             ->assertSee('Metode Pembayaran (Tripay)')
+            ->assertSee('<select name="payment_channel"', false)
+            ->assertDontSee('<img src="https://assets.tripay.co.id', false)
             ->assertSee('QRIS');
     }
 

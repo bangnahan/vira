@@ -321,13 +321,13 @@
             </div>
         </div>
 
-        <!-- STEP 6: Pilih Metode Pembayaran (Tripay Payment Gateway - Standar Industri) -->
+        <!-- STEP 6: Pilih Metode Pembayaran (Tripay Payment Gateway) -->
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl">
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-800">
                 <div class="flex items-center gap-3">
                     <span class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 font-athletic text-xl flex items-center justify-center">6</span>
                     <div>
-                        <h3 class="text-lg font-bold text-white">Metode Pembayaran (Tripay)</h3>
+                        <h3 class="text-base sm:text-lg font-bold text-white">Metode Pembayaran (Tripay)</h3>
                         <p class="text-xs text-slate-400">Verifikasi otomatis 24 jam real-time. Pilih metode pembayaran yang Anda inginkan:</p>
                     </div>
                 </div>
@@ -337,126 +337,67 @@
                 </span>
             </div>
 
-            <!-- Group 1: QRIS & E-Wallet (Scan & Bayar Cepat) -->
-            <div class="mb-6">
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">⚡ QRIS &amp; E-Wallet (Paling Populer)</span>
-                    <span class="text-[10px] text-slate-500">• Semua Bank &amp; Aplikasi E-Wallet</span>
+            <div class="space-y-2">
+                <label for="paymentChannelSelect" class="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                    Pilih Saluran Pembayaran <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                    <select name="payment_channel" 
+                            id="paymentChannelSelect"
+                            required 
+                            class="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-white focus:border-[#FF5500] focus:ring-1 focus:ring-[#FF5500] transition cursor-pointer appearance-none pr-10">
+                        @if(isset($groupedPaymentChannels) && $groupedPaymentChannels->count() > 0)
+                            @foreach($groupedPaymentChannels as $groupName => $channels)
+                                <optgroup label="— {{ strtoupper($groupName) }} —" class="bg-slate-950 text-slate-400 font-bold py-1">
+                                    @foreach($channels as $ch)
+                                        @php
+                                            $isQris = ($ch['code'] === 'QRIS2' || str_contains(strtoupper($ch['code']), 'QRIS'));
+                                            $isSelected = old('payment_channel') ? (old('payment_channel') === $ch['code']) : $isQris;
+                                        @endphp
+                                        <option value="{{ $ch['code'] }}" 
+                                                data-channel-name="{{ $ch['name'] }}"
+                                                class="bg-slate-900 text-white font-normal py-1.5"
+                                                {{ $isSelected ? 'selected' : '' }}>
+                                            {{ $ch['name'] }}
+                                        </option>
+                                    @endforeach
+                                </optgroup>
+                            @endforeach
+                        @else
+                            <optgroup label="— E-WALLET &amp; QRIS —" class="bg-slate-950 text-slate-400 font-bold py-1">
+                                <option value="QRIS2" data-channel-name="QRIS (Semua Bank &amp; E-Wallet)" selected>QRIS (Semua Bank &amp; E-Wallet)</option>
+                                <option value="OVO" data-channel-name="OVO">OVO</option>
+                                <option value="SHOPEEPAY" data-channel-name="ShopeePay">ShopeePay</option>
+                                <option value="DANA" data-channel-name="DANA">DANA</option>
+                            </optgroup>
+                            <optgroup label="— VIRTUAL ACCOUNT —" class="bg-slate-950 text-slate-400 font-bold py-1">
+                                <option value="BCAVA" data-channel-name="BCA Virtual Account">BCA Virtual Account</option>
+                                <option value="BRIVA" data-channel-name="BRI Virtual Account">BRI Virtual Account</option>
+                                <option value="BNIVA" data-channel-name="BNI Virtual Account">BNI Virtual Account</option>
+                                <option value="MANDIRIVA" data-channel-name="Mandiri Virtual Account">Mandiri Virtual Account</option>
+                                <option value="PERMATAVA" data-channel-name="Permata Virtual Account">Permata Virtual Account</option>
+                                <option value="CIMBVA" data-channel-name="CIMB Niaga Virtual Account">CIMB Niaga Virtual Account</option>
+                                <option value="BSIVA" data-channel-name="BSI (Bank Syariah Indonesia) Virtual Account">BSI (Bank Syariah Indonesia) Virtual Account</option>
+                                <option value="DANAMONVA" data-channel-name="Danamon Virtual Account">Danamon Virtual Account</option>
+                                <option value="BNCVA" data-channel-name="Bank Neo Commerce (BNC) Virtual Account">Bank Neo Commerce (BNC) Virtual Account</option>
+                                <option value="MUAMALATVA" data-channel-name="Muamalat Virtual Account">Muamalat Virtual Account</option>
+                            </optgroup>
+                            <optgroup label="— GERAI RETAIL / MINIMARKET —" class="bg-slate-950 text-slate-400 font-bold py-1">
+                                <option value="ALFAMART" data-channel-name="Alfamart">Alfamart</option>
+                                <option value="INDOMARET" data-channel-name="Indomaret">Indomaret</option>
+                                <option value="ALFAMIDI" data-channel-name="Alfamidi">Alfamidi</option>
+                            </optgroup>
+                        @endif
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    @php
-                        $ewalletChannels = $groupedPaymentChannels['E-Wallet'] ?? collect();
-                    @endphp
-
-                    @forelse($ewalletChannels as $ch)
-                        @php
-                            $isQris = ($ch['code'] === 'QRIS2' || str_contains(strtoupper($ch['code']), 'QRIS'));
-                        @endphp
-                        <label class="payment-channel-card relative flex items-center justify-between p-4 rounded-xl border border-slate-800 bg-slate-950/70 cursor-pointer hover:border-slate-700 transition has-[:checked]:border-[#FF5500] has-[:checked]:bg-[#FF5500]/5 has-[:checked]:shadow-lg has-[:checked]:shadow-orange-950/40">
-                            <div class="flex items-center gap-3.5">
-                                <input type="radio" 
-                                       name="payment_channel" 
-                                       value="{{ $ch['code'] }}" 
-                                       class="sr-only payment-channel-radio"
-                                       data-channel-name="{{ $ch['name'] }}"
-                                       {{ ($isQris || old('payment_channel') === $ch['code'] || $loop->first) ? 'checked' : '' }}>
-                                
-                                @if(!empty($ch['icon_url']))
-                                    <div class="w-14 h-9 rounded-lg bg-white p-1 flex items-center justify-center shrink-0 shadow-sm">
-                                        <img src="{{ $ch['icon_url'] }}" alt="{{ $ch['name'] }}" class="max-h-7 max-w-full object-contain">
-                                    </div>
-                                @else
-                                    <div class="w-14 h-9 rounded-lg bg-slate-800 flex items-center justify-center text-xs font-bold text-white shrink-0">
-                                        {{ $ch['code'] }}
-                                    </div>
-                                @endif
-
-                                <div>
-                                    <span class="font-bold text-sm text-white block">{{ $ch['name'] }}</span>
-                                    <span class="text-[11px] text-slate-400 block mt-0.5">
-                                        @if($isQris)
-                                            Scan via BCA, Mandiri, BRI, GoPay, OVO, Dana, dll.
-                                        @else
-                                            Pembayaran langsung aplikasi {{ $ch['name'] }}
-                                        @endif
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="text-right">
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Instan</span>
-                            </div>
-                        </label>
-                    @empty
-                        <!-- Fallback QRIS jika channel kosong -->
-                        <label class="payment-channel-card relative flex items-center justify-between p-4 rounded-xl border border-slate-800 bg-slate-950/70 cursor-pointer hover:border-slate-700 transition has-[:checked]:border-[#FF5500] has-[:checked]:bg-[#FF5500]/5">
-                            <div class="flex items-center gap-3.5">
-                                <input type="radio" name="payment_channel" value="QRIS2" class="sr-only payment-channel-radio" data-channel-name="QRIS (Semua Bank & E-Wallet)" checked>
-                                <div class="w-14 h-9 rounded-lg bg-white p-1 flex items-center justify-center shrink-0 shadow-sm">
-                                    <img src="https://assets.tripay.co.id/upload/payment-icon/Z14i8x1Dqm1583408985.png" alt="QRIS" class="max-h-7 max-w-full object-contain">
-                                </div>
-                                <div>
-                                    <span class="font-bold text-sm text-white block">QRIS (Semua Bank &amp; E-Wallet)</span>
-                                    <span class="text-[11px] text-slate-400 block mt-0.5">BCA, Mandiri, BRI, GoPay, OVO, Dana, ShopeePay</span>
-                                </div>
-                            </div>
-                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Instan</span>
-                        </label>
-                    @endforelse
-                </div>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    Pilih metode yang Anda kehendaki. Kode QRIS atau nomor Virtual Account akan langsung diterbitkan setelah pendaftaran dikirim.
+                </p>
+                @error('payment_channel') <p class="text-rose-400 text-xs mt-1.5">{{ $message }}</p> @enderror
             </div>
-
-            <!-- Group 2: Virtual Account Bank (Transfer Otomatis) -->
-            <div>
-                <div class="flex items-center gap-2 mb-3">
-                    <span class="text-xs font-bold text-purple-400 uppercase tracking-wider">🏦 Virtual Account (Transfer Bank Otomatis 24 Jam)</span>
-                    <span class="text-[10px] text-slate-500">• Tanpa Perlu Kirim Bukti Transfer</span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    @php
-                        $vaChannels = $groupedPaymentChannels['Virtual Account'] ?? collect();
-                    @endphp
-
-                    @forelse($vaChannels as $ch)
-                        <label class="payment-channel-card relative flex items-center justify-between p-4 rounded-xl border border-slate-800 bg-slate-950/70 cursor-pointer hover:border-slate-700 transition has-[:checked]:border-cyan-400 has-[:checked]:bg-cyan-500/5 has-[:checked]:shadow-lg has-[:checked]:shadow-cyan-950/40">
-                            <div class="flex items-center gap-3.5">
-                                <input type="radio" 
-                                       name="payment_channel" 
-                                       value="{{ $ch['code'] }}" 
-                                       class="sr-only payment-channel-radio"
-                                       data-channel-name="{{ $ch['name'] }}"
-                                       {{ old('payment_channel') === $ch['code'] ? 'checked' : '' }}>
-                                
-                                @if(!empty($ch['icon_url']))
-                                    <div class="w-14 h-9 rounded-lg bg-white p-1 flex items-center justify-center shrink-0 shadow-sm">
-                                        <img src="{{ $ch['icon_url'] }}" alt="{{ $ch['name'] }}" class="max-h-7 max-w-full object-contain">
-                                    </div>
-                                @else
-                                    <div class="w-14 h-9 rounded-lg bg-slate-800 flex items-center justify-center text-xs font-bold text-white shrink-0">
-                                        {{ $ch['code'] }}
-                                    </div>
-                                @endif
-
-                                <div>
-                                    <span class="font-bold text-sm text-white block">{{ $ch['name'] }}</span>
-                                    <span class="text-[11px] text-slate-400 block mt-0.5">Mobile Banking, Internet Banking, &amp; ATM</span>
-                                </div>
-                            </div>
-
-                            <div class="text-right">
-                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Auto Check</span>
-                            </div>
-                        </label>
-                    @empty
-                        <div class="p-4 rounded-xl border border-slate-800 text-xs text-slate-500 text-center col-span-2">
-                            Pilihan Virtual Account sedang dimuat.
-                        </div>
-                    @endforelse
-                </div>
-            </div>
-            @error('payment_channel') <p class="text-rose-400 text-xs mt-2">{{ $message }}</p> @enderror
         </div>
 
         <!-- STEP 7: Ringkasan Total & Tombol Checkout Tripay -->
@@ -652,19 +593,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }));
 
-    // Payment Channel Card Interaction
-    const paymentRadios = document.querySelectorAll('.payment-channel-radio');
+    // Payment Channel Dropdown Interaction
+    const paymentChannelSelect = document.getElementById('paymentChannelSelect');
     function updateSelectedPaymentChannel() {
-        const checkedChannel = document.querySelector('.payment-channel-radio:checked');
-        if (checkedChannel) {
-            summarySelectedMethod.textContent = checkedChannel.dataset.channelName || checkedChannel.value;
+        if (!paymentChannelSelect || !summarySelectedMethod) return;
+        const selectedOption = paymentChannelSelect.options[paymentChannelSelect.selectedIndex];
+        if (selectedOption) {
+            summarySelectedMethod.textContent = selectedOption.dataset.channelName || selectedOption.text.trim();
         }
     }
 
-    paymentRadios.forEach(radio => {
-        radio.addEventListener('change', updateSelectedPaymentChannel);
-    });
-    updateSelectedPaymentChannel();
+    if (paymentChannelSelect) {
+        paymentChannelSelect.addEventListener('change', updateSelectedPaymentChannel);
+        updateSelectedPaymentChannel();
+    }
 
     // Live Search Autocomplete Kota / Kabupaten SPX
     let cityDebounceTimer = null;
