@@ -34,9 +34,9 @@ class ImportSpxRatesCommand extends Command
             $this->info('Mengimpor data tarif SPX dari file database/data/spx_rates.json...');
             $rates = json_decode(file_get_contents($jsonPath), true);
             if (is_array($rates) && ! empty($rates)) {
+                SpxShippingRate::truncate();
                 DB::beginTransaction();
                 try {
-                    SpxShippingRate::truncate();
                     $now = now();
                     $batch = [];
                     $total = 0;
@@ -73,7 +73,9 @@ class ImportSpxRatesCommand extends Command
 
                     return self::SUCCESS;
                 } catch (\Throwable $e) {
-                    DB::rollBack();
+                    if (DB::transactionLevel() > 0) {
+                        DB::rollBack();
+                    }
                     $this->error('Gagal import dari JSON: '.$e->getMessage().'. Mencoba dari berkas XLSX...');
                 }
             }
@@ -140,10 +142,9 @@ class ImportSpxRatesCommand extends Command
         $totalImported = 0;
         $rowNumber = 0;
 
+        SpxShippingRate::truncate();
         DB::beginTransaction();
         try {
-            // Bersihkan data lama jika ada
-            SpxShippingRate::truncate();
 
             while ($reader->read()) {
                 if ($reader->nodeType === XMLReader::ELEMENT && $reader->name === 'row') {
@@ -224,7 +225,9 @@ class ImportSpxRatesCommand extends Command
 
             return self::SUCCESS;
         } catch (\Throwable $e) {
-            DB::rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
             $this->error('Terjadi kesalahan saat import: '.$e->getMessage());
 
             return self::FAILURE;
