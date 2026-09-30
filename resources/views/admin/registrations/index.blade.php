@@ -50,6 +50,20 @@
         </a>
     </div>
 
+    @if(session('success'))
+        <div class="mb-6 p-4 rounded-2xl bg-emerald-950/80 border border-emerald-500/50 text-emerald-200 text-xs flex items-center gap-3 shadow-xl">
+            <svg class="w-5 h-5 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span class="font-medium">{{ session('success') }}</span>
+        </div>
+    @endif
+
+    @if(session('info'))
+        <div class="mb-6 p-4 rounded-2xl bg-cyan-950/80 border border-cyan-500/50 text-cyan-200 text-xs flex items-center gap-3 shadow-xl">
+            <svg class="w-5 h-5 text-cyan-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="font-medium">{{ session('info') }}</span>
+        </div>
+    @endif
+
     <!-- Stat Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-5 mb-6 sm:mb-8">
         <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5">
@@ -300,6 +314,16 @@
                                            title="Lihat Invoice Tagihan">
                                             💳 Invoice
                                         </a>
+                                    @endif
+                                    @if(! $isPaid)
+                                        <form action="{{ route('admin.registrations.mark-as-paid', $reg) }}" method="POST" class="inline" onsubmit="return confirm('Konfirmasi pelunasan manual untuk {{ addslashes($p?->full_name ?? 'peserta ini') }}?\n\nStatus akan diubah menjadi PAID, nomor e-BIB resmi akan diterbitkan, dan email konfirmasi akan dikirimkan.');">
+                                            @csrf
+                                            <button type="submit" 
+                                                    class="p-1.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 text-emerald-400 hover:text-emerald-300 border border-emerald-500/40 transition text-xs font-bold flex items-center gap-1 shadow" 
+                                                    title="Konfirmasi Lunas Manual (Terbitkan e-BIB)">
+                                                <span>✅ Tandai Lunas</span>
+                                            </button>
+                                        </form>
                                     @endif
                                     @if($isPaid && $reg->bib_number)
                                         <a href="{{ route('participant.download.bib', $reg->access_token) }}" 

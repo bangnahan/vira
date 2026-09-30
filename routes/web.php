@@ -67,6 +67,7 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
 
     // Data Peserta, Monitoring Pembayaran & Export CSV
     Route::get('/registrations', [RegistrationManagementController::class, 'index'])->name('admin.registrations.index');
+    Route::post('/registrations/{registration}/mark-as-paid', [RegistrationManagementController::class, 'markAsPaid'])->name('admin.registrations.mark-as-paid');
     Route::get('/registrations/export', [RegistrationManagementController::class, 'export'])->name('admin.registrations.export');
     Route::get('/registrations/jersey-orders', [RegistrationManagementController::class, 'jerseyOrders'])->name('admin.registrations.jersey-orders');
     Route::get('/registrations/jersey-orders/export', [RegistrationManagementController::class, 'exportJerseyOrders'])->name('admin.registrations.jersey-orders.export');

@@ -43,6 +43,10 @@ class PaymentController extends Controller
      */
     public function simulateSuccess(Request $request, string $merchant_ref): RedirectResponse
     {
+        if (! config('tripay.sandbox', false) && ! (auth()->check() && auth()->user()->isAdmin())) {
+            abort(403, 'Simulasi pembayaran dinonaktifkan pada mode produksi.');
+        }
+
         $payment = Payment::with(['registration.category', 'registration.event'])
             ->where('merchant_ref', $merchant_ref)
             ->firstOrFail();

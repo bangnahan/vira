@@ -119,20 +119,18 @@
                     Batas waktu pembayaran: <strong class="text-amber-300">{{ $payment->expired_at ? $payment->expired_at->format('d M Y, H:i') : '24 Jam' }} WIB</strong>
                 </p>
 
-                <!-- Simulasi Sandbox Payment Button -->
-                <form action="{{ route('payment.simulate', $payment->merchant_ref) }}" method="POST" class="mt-6 pt-6 border-t border-slate-800/80">
-                    @csrf
-                    <button type="submit" class="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition flex items-center justify-center gap-2 mx-auto">
-                        <span>⚡ Simulasikan Pembayaran Sukses (Mode Sandbox)</span>
-                    </button>
-                    <p class="text-[10px] text-slate-400 mt-2">
-                        @if($payment->registration->event_id)
-                            Tombol di atas memicu konfirmasi pembayaran &amp; penerbitan e-BIB serta kirim email Mailketing secara instan.
-                        @else
-                            Tombol di atas memicu konfirmasi pembayaran lunas untuk pesanan merchandise ini secara instan.
-                        @endif
-                    </p>
-                </form>
+                <!-- Simulasi Sandbox Payment Button (Hanya tampil jika Mode Sandbox TRIPAY_SANDBOX=true) -->
+                @if(config('tripay.sandbox', false))
+                    <form action="{{ route('payment.simulate', $payment->merchant_ref) }}" method="POST" class="mt-6 pt-6 border-t border-slate-800/80">
+                        @csrf
+                        <button type="submit" class="w-full sm:w-auto px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition flex items-center justify-center gap-2 mx-auto">
+                            <span>⚡ Simulasikan Pembayaran Sukses (Mode Sandbox)</span>
+                        </button>
+                        <p class="text-[10px] text-slate-400 mt-2">
+                            Mode Pengujian Sandbox aktif. Tombol ini tidak akan tampil saat TRIPAY_SANDBOX=false (Mode Produksi).
+                        </p>
+                    </form>
+                @endif
             </div>
         @endif
 

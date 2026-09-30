@@ -6,12 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\Event;
 use App\Models\Registration;
 use App\Models\RegistrationAddOn;
+use App\Services\MailketingService;
+use App\Services\MetaCapiService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RegistrationManagementController extends Controller
 {
+    public function __construct(
+        protected MailketingService $mailketingService,
+        protected MetaCapiService $metaCapiService
+    ) {}
+
     /**
      * Tampilkan data pendaftar & monitoring status pembayaran.
      */
@@ -665,5 +675,69 @@ class RegistrationManagementController extends Controller
 
             fclose($handle);
         }, 200, $headers);
+    }
+
+    /**
+     * Konfirmasi pelunasan manual untuk pendaftaran oleh Super Admin.
+     */
+    public function markAsPaid(Request $request, Registration $registration): RedirectResponse
+    {
+        $registration->load(['participant', 'category', 'event', 'payment']);
+
+        if ($registration->isPaid()) {
+            return back()->with('info', "Pendaftaran {$registration->participant?->full_name} sudah lunas sebelumnya.");
+        }
+
+        DB::transaction(function () use ($registration) {
+            // 1. Jika pendaftaran event dan belum ada nomor BIB, terbitkan
+            if ($registration->event_id && $registration->category) {
+                if (empty($registration->bib_number)) {
+                    $newBib = $registration->category->generateNextBibNumber();
+                    $registration->update([
+                        'payment_status' => 'PAID',
+                        'bib_number' => $newBib,
+                    ]);
+                } else {
+                    $registration->update(['payment_status' => 'PAID']);
+                }
+            } else {
+                $registration->update(['payment_status' => 'PAID']);
+            }
+
+            // 2. Update status pembayaran jika ada record payment
+            if ($registration->payment) {
+                $registration->payment->update([
+                    'status' => 'PAID',
+                    'paid_at' => now(),
+                    'payment_method' => $registration->payment->payment_method ?: 'MANUAL_ADMIN',
+                ]);
+            }
+        });
+
+        // 3. Kirim notifikasi email via Mailketing & Meta CAPI jika pendaftaran event
+        if ($registration->event_id && $registration->category) {
+            try {
+                $this->mailketingService->sendPaymentSuccessEmail($registration->fresh());
+            } catch (\Throwable $e) {
+                Log::warning('Mailketing send error on manual markAsPaid: '.$e->getMessage());
+            }
+
+            try {
+                if ($registration->event?->is_meta_capi_enabled && $registration->payment) {
+                    $this->metaCapiService->sendPurchaseEvent(
+                        $registration->event,
+                        $registration->payment,
+                        $registration->participant
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Meta CAPI purchase error on manual markAsPaid: '.$e->getMessage());
+            }
+        }
+
+        $fresh = $registration->fresh();
+        $bibMsg = $fresh->bib_number ? " Nomor e-BIB resmi: {$fresh->bib_number} telah diterbitkan." : '';
+
+        return back()->with('success', "Pendaftaran atas nama {$registration->participant?->full_name} berhasil dikonfirmasi lunas secara manual!{$bibMsg} Email konfirmasi telah dikirimkan ke peserta.");
     }
 }

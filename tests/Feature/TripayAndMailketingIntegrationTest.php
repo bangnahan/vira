@@ -309,4 +309,23 @@ class TripayAndMailketingIntegrationTest extends TestCase
                 str_contains($request['content'], 'Unduh E-Sertifikat Finisher');
         });
     }
+
+    public function test_simulation_button_hidden_and_endpoint_forbidden_in_production_mode(): void
+    {
+        // 1. Pada mode sandbox, tombol simulasi tampil dan dapat diklik
+        config(['tripay.sandbox' => true]);
+        $responseSandbox = $this->get(route('payment.show', $this->payment->merchant_ref));
+        $responseSandbox->assertStatus(200);
+        $responseSandbox->assertSee('Simulasikan Pembayaran Sukses (Mode Sandbox)');
+
+        // 2. Pada mode produksi, tombol simulasi tersembunyi total dari halaman tagihan
+        config(['tripay.sandbox' => false]);
+        $responseProd = $this->get(route('payment.show', $this->payment->merchant_ref));
+        $responseProd->assertStatus(200);
+        $responseProd->assertDontSee('Simulasikan Pembayaran Sukses (Mode Sandbox)');
+
+        // 3. Pada mode produksi, percobaan akses rute simulasi langsung ditolak (403 Forbidden)
+        $postRes = $this->post(route('payment.simulate', $this->payment->merchant_ref));
+        $postRes->assertStatus(403);
+    }
 }

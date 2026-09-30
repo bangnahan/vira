@@ -317,4 +317,18 @@ class AdminRegistrationManagementTest extends TestCase
         $this->assertStringContainsString('Paket Medali & Jersey', $content);
         $this->assertStringContainsString('Jersey Finisher Tambahan', $content);
     }
+
+    public function test_admin_can_manually_mark_unpaid_registration_as_paid(): void
+    {
+        $this->assertEquals('UNPAID', $this->registrationUnpaid->payment_status);
+
+        $response = $this->post(route('admin.registrations.mark-as-paid', $this->registrationUnpaid));
+        $response->assertStatus(302);
+        $response->assertSessionHas('success');
+
+        $this->registrationUnpaid->refresh();
+        $this->assertEquals('PAID', $this->registrationUnpaid->payment_status);
+        $this->assertEquals('1002', $this->registrationUnpaid->bib_number);
+        $this->assertEquals('PAID', $this->registrationUnpaid->payment->status);
+    }
 }
