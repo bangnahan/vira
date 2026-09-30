@@ -21,9 +21,16 @@ Pastikan server VPS dengan HestiaCP sudah terpasang dependensi berikut:
   ```bash
   composer --version
   ```
-- **Node.js (v18+ / v20+) & NPM**:
+- **Node.js (v20.12+ atau v22 LTS)** & NPM:
+  > [!IMPORTANT]
+  > Vite terbaru membutuhkan Node.js minimal **v20.12+** atau **v22 LTS** (karena membutuhkan modul `node:util.styleText`). Pasang via NodeSource:
   ```bash
-  node -v
+  # Pasang Node.js 22 LTS
+  curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+  sudo apt install -y nodejs
+
+  # Verifikasi versi
+  node -v  # Harus v22.x atau minimal v20.12+
   npm -v
   ```
 - **MySQL / MariaDB** (disediakan langsung oleh HestiaCP).
