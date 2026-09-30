@@ -97,7 +97,7 @@ class StorefrontController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.id' => ['required', 'exists:add_ons,id'],
             'items.*.variant_id' => ['nullable', 'exists:add_on_variants,id'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.quantity' => ['required', 'integer', 'min:1', 'max:1000'],
         ]);
 
         // Verifikasi item & hitung subtotal serta berat total

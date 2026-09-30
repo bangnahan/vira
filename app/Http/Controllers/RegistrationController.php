@@ -33,12 +33,17 @@ class RegistrationController extends Controller
     /**
      * Tampilkan form pendaftaran guest untuk event tertentu.
      */
-    public function create(string $slug): View
+    public function create(string $slug): View|RedirectResponse
     {
         $event = Event::with(['categories', 'packages', 'addOns.variants'])
             ->where('slug', $slug)
             ->where('is_active', true)
             ->firstOrFail();
+
+        if (! $event->isRegistrationOpen()) {
+            return redirect()->route('events.show', $event->slug)
+                ->with('error', 'Pendaftaran untuk event ini belum dibuka atau sudah berakhir.');
+        }
 
         // Ambil add-ons spesifik event + add-on global (event_id is null)
         $addOns = AddOn::with('variants')
@@ -65,6 +70,10 @@ class RegistrationController extends Controller
     public function store(Request $request, string $slug): RedirectResponse
     {
         $event = Event::where('slug', $slug)->where('is_active', true)->firstOrFail();
+
+        if (! $event->isRegistrationOpen()) {
+            return back()->withInput()->with('error', 'Pendaftaran untuk event ini belum dibuka atau sudah berakhir.');
+        }
 
         // Filter add-ons yang benar-benar dipilih peserta (quantity > 0)
         if ($request->has('addons') && is_array($request->input('addons'))) {

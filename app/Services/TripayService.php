@@ -331,7 +331,7 @@ class TripayService
      */
     public function verifyWebhookSignature(string $rawContent, ?string $signature): bool
     {
-        if (empty($signature)) {
+        if (empty($signature) || empty($this->privateKey)) {
             return false;
         }
 

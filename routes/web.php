@@ -20,26 +20,26 @@ Route::get('/', [HomeController::class, 'index'])->name('home');
 // Detail Event & Pendaftaran
 Route::get('/event/{slug}', [EventController::class, 'show'])->name('events.show');
 Route::get('/event/{slug}/register', [RegistrationController::class, 'create'])->name('events.register');
-Route::post('/event/{slug}/register', [RegistrationController::class, 'store'])->name('events.register.store');
+Route::post('/event/{slug}/register', [RegistrationController::class, 'store'])->name('events.register.store')->middleware('throttle:15,1');
 
 // Official Store & Merchandise Shop (Bisa dibeli mandiri tanpa lewat event)
 Route::get('/etalase', [StorefrontController::class, 'index'])->name('etalase.index');
 Route::get('/shop', [StorefrontController::class, 'index'])->name('shop.index');
 Route::get('/shop/checkout', [StorefrontController::class, 'checkout'])->name('shop.checkout');
-Route::post('/shop/checkout', [StorefrontController::class, 'storeOrder'])->name('shop.order.store');
+Route::post('/shop/checkout', [StorefrontController::class, 'storeOrder'])->name('shop.order.store')->middleware('throttle:15,1');
 
 // Tagihan Pembayaran & Simulasi
 Route::get('/payment/{merchant_ref}', [PaymentController::class, 'show'])->name('payment.show');
-Route::match(['GET', 'POST'], '/payment/{merchant_ref}/simulate-pay', [PaymentController::class, 'simulateSuccess'])->name('payment.simulate');
+Route::match(['GET', 'POST'], '/payment/{merchant_ref}/simulate-pay', [PaymentController::class, 'simulateSuccess'])->name('payment.simulate')->middleware('throttle:10,1');
 
 // Universal Submission Portal (Satu Link untuk Semua Event!)
 Route::get('/submit', [UniversalSubmissionController::class, 'index'])->name('submit.index');
-Route::post('/submit/lookup', [UniversalSubmissionController::class, 'lookup'])->name('submit.lookup');
-Route::post('/submit/record', [UniversalSubmissionController::class, 'record'])->name('submit.record');
+Route::post('/submit/lookup', [UniversalSubmissionController::class, 'lookup'])->name('submit.lookup')->middleware('throttle:20,1');
+Route::post('/submit/record', [UniversalSubmissionController::class, 'record'])->name('submit.record')->middleware('throttle:15,1');
 
 // Unduh Kartu e-BIB & E-Sertifikat Digital (Format PNG Resolusi Tinggi)
-Route::get('/p/{identifier}/download-bib', [ParticipantDownloadController::class, 'downloadBib'])->name('participant.download.bib');
-Route::get('/p/{identifier}/download-certificate', [ParticipantDownloadController::class, 'downloadCertificate'])->name('participant.download.certificate');
+Route::get('/p/{identifier}/download-bib', [ParticipantDownloadController::class, 'downloadBib'])->name('participant.download.bib')->middleware('throttle:30,1');
+Route::get('/p/{identifier}/download-certificate', [ParticipantDownloadController::class, 'downloadCertificate'])->name('participant.download.certificate')->middleware('throttle:30,1');
 
 // Admin Authentication (Public Login & Rate Limiting)
 Route::prefix('admin')->group(function () {

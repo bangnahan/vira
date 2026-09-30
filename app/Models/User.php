@@ -41,6 +41,11 @@ class User extends Authenticatable
         return in_array($this->role, ['SUPER_ADMIN', 'RACE_ADMIN'], true);
     }
 
+    public function isAdmin(): bool
+    {
+        return $this->isRaceAdmin();
+    }
+
     public function reviewedSubmissions(): HasMany
     {
         return $this->hasMany(ActivitySubmission::class, 'reviewed_by');

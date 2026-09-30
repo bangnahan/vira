@@ -58,9 +58,19 @@
                 </span>
             </div>
             <div class="p-3.5 sm:p-5 flex items-center justify-center">
-                <a href="{{ route('events.register', $event->slug) }}" class="w-full py-3 sm:py-2.5 px-3 sm:px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-[#FF5500] to-[#FF7700] hover:from-[#FF6600] hover:to-[#FF8800] transition shadow-lg shadow-orange-950/40 text-center">
-                    Daftar Sekarang &rarr;
-                </a>
+                @if($event->isRegistrationOpen())
+                    <a href="{{ route('events.register', $event->slug) }}" class="w-full py-3 sm:py-2.5 px-3 sm:px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-[#FF5500] to-[#FF7700] hover:from-[#FF6600] hover:to-[#FF8800] transition shadow-lg shadow-orange-950/40 text-center">
+                        Daftar Sekarang &rarr;
+                    </a>
+                @elseif(now()->lt($event->registration_start))
+                    <span class="w-full py-3 sm:py-2.5 px-3 sm:px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-400 bg-slate-800/80 border border-slate-700/80 text-center block cursor-not-allowed">
+                        Segera Dibuka
+                    </span>
+                @else
+                    <span class="w-full py-3 sm:py-2.5 px-3 sm:px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-rose-300 bg-rose-950/40 border border-rose-900/60 text-center block cursor-not-allowed">
+                        Pendaftaran Ditutup
+                    </span>
+                @endif
             </div>
         </div>
     </div>
@@ -74,7 +84,7 @@
                     <span class="text-[#FF5500]">■</span> Deskripsi &amp; Informasi Event
                 </h3>
                 <div class="event-prose text-slate-300 leading-relaxed text-sm sm:text-base">
-                    {!! $event->description !!}
+                    {!! $event->sanitized_description !!}
                 </div>
             </div>
 

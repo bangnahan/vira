@@ -13,7 +13,7 @@ Route::get('/user', function (Request $request) {
 Route::post('/tripay/callback', [TripayWebhookController::class, 'handle'])->name('api.tripay.callback');
 
 // SPX Shipping Endpoints (Asal: Kab. Tangerang, Banten)
-Route::prefix('shipping')->group(function () {
+Route::prefix('shipping')->middleware('throttle:60,1')->group(function () {
     Route::get('/cities', [ShippingController::class, 'cities'])->name('api.shipping.cities');
     Route::get('/districts', [ShippingController::class, 'districts'])->name('api.shipping.districts');
     Route::post('/calculate', [ShippingController::class, 'calculate'])->name('api.shipping.calculate');

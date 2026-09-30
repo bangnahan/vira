@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivitySubmission;
 use App\Models\Registration;
 use App\Services\MailketingService;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -85,6 +86,24 @@ class UniversalSubmissionController extends Controller
         ]);
 
         $registration = Registration::with(['event', 'category'])->findOrFail($validated['registration_id']);
+
+        if (! $registration->isPaid()) {
+            return redirect()->route('submit.index')
+                ->with('error', 'Aktivitas hanya dapat dicatat untuk pendaftaran yang status pembayarannya telah lunas/aktif.');
+        }
+
+        if ($registration->event) {
+            $event = $registration->event;
+            $activityDate = Carbon::parse($validated['activity_date'])->startOfDay();
+
+            if ($event->race_start && $activityDate->lt($event->race_start->startOfDay())) {
+                return back()->withInput()->with('error', 'Tanggal aktivitas tidak boleh mendahului periode dimulainya lomba (mulai '.$event->race_start->translatedFormat('d F Y').').');
+            }
+
+            if ($event->race_end && $activityDate->gt($event->race_end->endOfDay())) {
+                return back()->withInput()->with('error', 'Tanggal aktivitas melebihi batas akhir periode lomba (berakhir '.$event->race_end->translatedFormat('d F Y').').');
+            }
+        }
 
         $hours = (int) ($validated['duration_hours'] ?? 0);
         $minutes = (int) ($validated['duration_minutes'] ?? 0);

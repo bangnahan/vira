@@ -279,7 +279,7 @@ class RegistrationManagementController extends Controller
                     }
 
                     if ($preset === 'logistics') {
-                        fputcsv($handle, [
+                        $this->writeCsvRow($handle, [
                             $no++,
                             $reg->id,
                             $reg->event?->title ?? '-',
@@ -299,7 +299,7 @@ class RegistrationManagementController extends Controller
                             $ship?->address_detail ?? '-',
                         ]);
                     } elseif ($preset === 'finance') {
-                        fputcsv($handle, [
+                        $this->writeCsvRow($handle, [
                             $no++,
                             $reg->id,
                             $reg->created_at ? $reg->created_at->format('Y-m-d H:i:s') : '-',
@@ -317,7 +317,7 @@ class RegistrationManagementController extends Controller
                             $pay?->paid_at ? $pay->paid_at->format('Y-m-d H:i:s') : '-',
                         ]);
                     } else {
-                        fputcsv($handle, [
+                        $this->writeCsvRow($handle, [
                             $no++,
                             $reg->id,
                             $reg->created_at ? $reg->created_at->format('Y-m-d H:i:s') : '-',
@@ -634,7 +634,7 @@ class RegistrationManagementController extends Controller
                 }
                 $row[] = $pkg['sizes']['Lainnya'];
                 $row[] = $pkg['total'];
-                fputcsv($handle, $row);
+                $this->writeCsvRow($handle, $row);
             }
 
             // Total Baris Paket
@@ -644,17 +644,17 @@ class RegistrationManagementController extends Controller
             }
             $totalRow[] = $packageSizeTotals['Lainnya'];
             $totalRow[] = $totalPackageJerseys;
-            fputcsv($handle, $totalRow);
+            $this->writeCsvRow($handle, $totalRow);
 
             fputcsv($handle, []);
 
             // 2. Bagian Add-ons Merchandise
-            fputcsv($handle, ['[BAGIAN 2: REKAPITULASI DARI ITEM ADD-ONS / MERCHANDISE TAMBAHAN]']);
-            fputcsv($handle, ['No', 'Nama Item Merchandise', 'Event', 'Varian / Ukuran', 'Jumlah (Pcs)']);
+            $this->writeCsvRow($handle, ['[BAGIAN 2: REKAPITULASI DARI ITEM ADD-ONS / MERCHANDISE TAMBAHAN]']);
+            $this->writeCsvRow($handle, ['No', 'Nama Item Merchandise', 'Event', 'Varian / Ukuran', 'Jumlah (Pcs)']);
 
             $noAddon = 1;
             foreach ($addonRaw as $item) {
-                fputcsv($handle, [
+                $this->writeCsvRow($handle, [
                     $noAddon++,
                     $item->item_name,
                     $item->event_title,
@@ -662,7 +662,7 @@ class RegistrationManagementController extends Controller
                     (int) $item->total_qty,
                 ]);
             }
-            fputcsv($handle, ['TOTAL MERCHANDISE ADD-ONS', '', '', '', $totalAddonJerseys]);
+            $this->writeCsvRow($handle, ['TOTAL MERCHANDISE ADD-ONS', '', '', '', $totalAddonJerseys]);
 
             fputcsv($handle, []);
 
@@ -739,5 +739,32 @@ class RegistrationManagementController extends Controller
         $bibMsg = $fresh->bib_number ? " Nomor e-BIB resmi: {$fresh->bib_number} telah diterbitkan." : '';
 
         return back()->with('success', "Pendaftaran atas nama {$registration->participant?->full_name} berhasil dikonfirmasi lunas secara manual!{$bibMsg} Email konfirmasi telah dikirimkan ke peserta.");
+    }
+
+    /**
+     * Sanitasi nilai string untuk mencegah serangan CSV Formula Injection (Excel / LibreOffice DDE).
+     */
+    protected function sanitizeCsvValue(mixed $value): mixed
+    {
+        if (is_string($value) && $value !== '') {
+            $firstChar = $value[0];
+            if (in_array($firstChar, ['=', '+', '-', '@', "\t", "\r"], true)) {
+                return "'".$value;
+            }
+        }
+
+        return $value;
+    }
+
+    /**
+     * Tulis baris CSV dengan sanitasi otomatis seluruh elemen kolom.
+     *
+     * @param  resource  $handle
+     * @param  array<int, mixed>  $row
+     */
+    protected function writeCsvRow($handle, array $row): void
+    {
+        $sanitized = array_map([$this, 'sanitizeCsvValue'], $row);
+        fputcsv($handle, $sanitized);
     }
 }

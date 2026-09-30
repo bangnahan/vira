@@ -111,4 +111,23 @@ class Event extends Model
 
         return '/storage/'.ltrim($this->banner_image, '/');
     }
+
+    /**
+     * Sanitasi deskripsi HTML event untuk memitigasi serangan Stored XSS.
+     */
+    public function getSanitizedDescriptionAttribute(): string
+    {
+        if (empty($this->description)) {
+            return '';
+        }
+
+        $allowedTags = '<p><br><hr><h1><h2><h3><h4><h5><h6><strong><b><em><i><u><s><strike><ul><ol><li><blockquote><img><table><thead><tbody><tr><th><td><span><div>';
+        $clean = strip_tags($this->description, $allowedTags);
+
+        $clean = preg_replace('/(\s|\A)on[a-z0-9_-]+\s*=\s*(["\'])(.*?)\2/i', '', $clean);
+        $clean = preg_replace('/href\s*=\s*(["\'])\s*javascript:[^"\']*\1/i', 'href="#"', $clean);
+        $clean = preg_replace('/src\s*=\s*(["\'])\s*javascript:[^"\']*\1/i', '', $clean);
+
+        return $clean;
+    }
 }
