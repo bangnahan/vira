@@ -91,7 +91,15 @@ class EventController extends Controller
             $path = $request->file('hero_image')->store('events/banners', 'public');
             if ($path) {
                 $bannerUrl = Storage::url($path);
+            } else {
+                return back()->withInput()->withErrors([
+                    'hero_image' => 'Gagal menyimpan file banner ke server. Pastikan folder storage/app/public memiliki izin tulis (writable).',
+                ]);
             }
+        }
+
+        if ($bannerUrl === '/storage/' || $bannerUrl === '/storage') {
+            $bannerUrl = null;
         }
 
         $event = DB::transaction(function () use ($validated, $slug, $bannerUrl, $request) {
@@ -231,19 +239,35 @@ class EventController extends Controller
 
         $bannerUrl = $event->banner_image;
         if ($request->hasFile('hero_image')) {
-            if ($event->banner_image && str_starts_with($event->banner_image, '/storage/')) {
-                $oldPath = str_replace('/storage/', '', $event->banner_image);
-                if ($oldPath !== '') {
-                    Storage::disk('public')->delete($oldPath);
-                }
-            }
             Storage::disk('public')->makeDirectory('events/banners');
             $path = $request->file('hero_image')->store('events/banners', 'public');
             if ($path) {
+                if ($event->banner_image && str_starts_with($event->banner_image, '/storage/')) {
+                    $oldPath = str_replace('/storage/', '', $event->banner_image);
+                    if ($oldPath !== '' && Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+                }
                 $bannerUrl = Storage::url($path);
+            } else {
+                return back()->withInput()->withErrors([
+                    'hero_image' => 'Gagal menyimpan file banner ke server. Pastikan folder storage/app/public memiliki izin tulis (writable).',
+                ]);
             }
+        } elseif ($request->boolean('remove_banner')) {
+            if ($event->banner_image && str_starts_with($event->banner_image, '/storage/')) {
+                $oldPath = str_replace('/storage/', '', $event->banner_image);
+                if ($oldPath !== '' && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+            $bannerUrl = null;
         } elseif ($request->filled('banner_image')) {
             $bannerUrl = $request->input('banner_image');
+        }
+
+        if ($bannerUrl === '/storage/' || $bannerUrl === '/storage') {
+            $bannerUrl = null;
         }
 
         DB::transaction(function () use ($event, $validated, $bannerUrl, $request) {

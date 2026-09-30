@@ -138,8 +138,9 @@
 
                     <div class="space-y-3">
                         @php
-                            $hasBanner = !empty($event->banner_image);
+                            $hasBanner = !empty($event->banner_image) && $event->banner_image !== '/storage/' && $event->banner_image !== '/storage';
                         @endphp
+                        <input type="hidden" name="remove_banner" id="removeBannerInput" value="0">
 
                         <!-- Dropzone File Upload -->
                         <div id="dropzoneContainer" 
@@ -504,10 +505,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const previewImg = document.getElementById('previewImg');
     const removeImgBtn = document.getElementById('removeImgBtn');
 
+    const removeBannerInput = document.getElementById('removeBannerInput');
+
     if (heroImageInput) {
         heroImageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
+                if (removeBannerInput) removeBannerInput.value = '0';
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     previewImg.src = evt.target.result;
@@ -525,6 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
         removeImgBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            if (removeBannerInput) removeBannerInput.value = '1';
             heroImageInput.value = '';
             previewImg.src = '#';
             dropzonePreview.classList.add('hidden');
