@@ -29,6 +29,56 @@ class ImportSpxRatesCommand extends Command
      */
     public function handle(): int
     {
+        $jsonPath = database_path('data/spx_rates.json');
+        if (! $this->option('file') && file_exists($jsonPath)) {
+            $this->info('Mengimpor data tarif SPX dari file database/data/spx_rates.json...');
+            $rates = json_decode(file_get_contents($jsonPath), true);
+            if (is_array($rates) && ! empty($rates)) {
+                DB::beginTransaction();
+                try {
+                    SpxShippingRate::truncate();
+                    $now = now();
+                    $batch = [];
+                    $total = 0;
+
+                    foreach ($rates as $item) {
+                        $batch[] = [
+                            'origin_city' => $item['origin_city'] ?? 'KAB. TANGERANG',
+                            'destination_city' => $item['destination_city'],
+                            'destination_district' => $item['destination_district'],
+                            'rate_hemat' => (float) ($item['rate_hemat'] ?? 0),
+                            'sla_hemat_days' => (int) ($item['sla_hemat_days'] ?? 7),
+                            'rate_regular' => (float) ($item['rate_regular'] ?? 0),
+                            'sla_regular_days' => (int) ($item['sla_regular_days'] ?? 3),
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+
+                        if (count($batch) >= 500) {
+                            SpxShippingRate::insert($batch);
+                            $total += count($batch);
+                            $batch = [];
+                        }
+                    }
+
+                    if (! empty($batch)) {
+                        SpxShippingRate::insert($batch);
+                        $total += count($batch);
+                    }
+
+                    DB::commit();
+
+                    $totalCities = SpxShippingRate::distinct('destination_city')->count();
+                    $this->info("✓ Berhasil mengimpor {$total} data tarif SPX ke {$totalCities} Kota/Kabupaten seluruh Indonesia.");
+
+                    return self::SUCCESS;
+                } catch (\Throwable $e) {
+                    DB::rollBack();
+                    $this->error('Gagal import dari JSON: '.$e->getMessage().'. Mencoba dari berkas XLSX...');
+                }
+            }
+        }
+
         $defaultPath = base_path('Data dari SPX/[CONFIDENTIAL] SPXID RATE CARD - For PT MANA PERSADA KOMPUTER (Pinusrun) - KAB TANGERANG.xlsx');
         $filePath = $this->option('file') ?: $defaultPath;
 

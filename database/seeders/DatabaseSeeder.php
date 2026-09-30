@@ -259,5 +259,8 @@ class DatabaseSeeder extends Seeder
                 'requires_shipping' => false,
             ]
         );
+
+        // 4. SPX Shipping Rates
+        $this->call(SpxShippingRateSeeder::class);
     }
 }
